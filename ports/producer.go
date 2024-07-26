@@ -34,21 +34,9 @@ func NewProducer(amqpURI, exchange, exchangeType, queueName, routingKey string) 
 		return nil, fmt.Errorf("Channel: %s", err)
 	}
 
-	if err = p.channel.ExchangeDeclare(
-		p.exchange,
-		p.exchangeType,
-		true,
-		false,
-		false,
-		false,
-		nil,
-	); err != nil {
-		return nil, fmt.Errorf("Exchange Declare: %s", err)
-	}
-
 	if _, err = p.channel.QueueDeclare(
 		p.queueName,
-		true,
+		false,
 		false,
 		false,
 		false,
@@ -57,44 +45,32 @@ func NewProducer(amqpURI, exchange, exchangeType, queueName, routingKey string) 
 		return nil, fmt.Errorf("Queue Declare: %s", err)
 	}
 
-	if err = p.channel.QueueBind(
-		p.queueName,
-		p.routingKey,
-		p.exchange,
-		false,
-		nil,
-	); err != nil {
-		return nil, fmt.Errorf("Queue Bind: %s", err)
-	}
-
-	if err = p.channel.Confirm(false); err != nil {
-		return nil, fmt.Errorf("Channel Confirm: %s", err)
-	}
-
 	return p, nil
 }
 
 func (p *Producer) Publish(body string) error {
-	confirmation := make(chan amqp.Confirmation, 1)
-
+	fmt.Print(body)
 	if err := p.channel.Publish(
-		p.exchange,
-		p.routingKey,
-		true,
+		"",
+		"users",
+		false,
 		false,
 		amqp.Publishing{
-			ContentType:  "text/plain",
-			Body:         []byte(body),
-			DeliveryMode: amqp.Persistent,
+			ContentType: "text/plain",
+			Body:        []byte(body),
 		},
 	); err != nil {
 		return fmt.Errorf("Publish: %s", err)
 	}
 
-	confirm := <-confirmation
-	if !confirm.Ack {
-		return fmt.Errorf("Publish failed")
-	}
+	// Wait for the confirmation
+	// confirm := <-p.channel.NotifyPublish(make(chan amqp.Confirmation, 1))
+
+	// if !confirm.Ack {
+	// 	return fmt.Errorf("Publish failed")
+	// }
+
+	// fmt.Print(confirm.Ack)
 
 	return nil
 }

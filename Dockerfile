@@ -14,7 +14,7 @@ RUN go mod download
 COPY *.go ./
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux go build -o /goponey
+RUN CGO_ENABLED=0 go build -o /goponey
 
 # Optional:
 # To bind to a TCP port, runtime parameters must be supplied to the docker command.

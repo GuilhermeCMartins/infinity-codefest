@@ -14,7 +14,7 @@ services:
 
   codefest:
     container_name: "codefest"
-    image: leonardocbsr/codefest:latest
+    image: leonardocbsr/codefest:1.1
     depends_on:
       - rabbitmq
     restart: always
