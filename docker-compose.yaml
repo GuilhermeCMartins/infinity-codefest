@@ -21,18 +21,18 @@ services:
     networks:
       - rabbitmq_docker_network
 
-  api:
-    container_name: "goponey_api"
-    build: .
-    ports:
-      - 8000:8000
-    networks:
-      - api_db_network
-    environment:
-      - DATABASE_URL=postgres://goponey:poney@db:5432/goponey_db
-    depends_on:
-      - db
-    restart: always
+  # api:
+  #   container_name: "goponey_api"
+  #   build: .
+  #   ports:
+  #     - 8000:8000
+  #   networks:
+  #     - api_db_network
+  #   environment:
+  #     - DATABASE_URL=postgres://goponey:poney@db:5432/goponey_db
+  #   depends_on:
+  #     - db
+  #   restart: always
 
   db:
     container_name: "goponey_db"
