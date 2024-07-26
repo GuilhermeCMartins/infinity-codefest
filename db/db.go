@@ -3,13 +3,14 @@ package db
 import (
 	"log"
 	"myapp/models"
+	"os"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
 func Init() *gorm.DB {
-    dbURL := "postgres://pg:pass@localhost:5432/crud"
+    dbURL := os.Getenv("DATABASE_URL")
 
     db, err := gorm.Open(postgres.Open(dbURL), &gorm.Config{})
 
@@ -21,3 +22,5 @@ func Init() *gorm.DB {
 
     return db
 }
+
+//TODO: Add Close function
