@@ -29,7 +29,7 @@ const (
 )
 
 type User struct {
-  Id        uuid.UUID      `json:"id" gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
+  Id uuid.UUID `json:"id" gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
   Name  string `json:"name"`
   Email  string `json:"email"` 
   PublicKey string `json:"public_key"`
