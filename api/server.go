@@ -2,6 +2,7 @@ package api
 
 import (
 	"log"
+	"myapp/db"
 	"os"
 	"os/signal"
 	"syscall"
@@ -20,6 +21,8 @@ func Start() {
 
 	r.NoMethod(middlewares.MethodCheckHandler())
 	r.NoRoute(middlewares.NotFoundHandler())
+
+	db.Init()
 
 	cm := ports.NewConsumerManager()
 
