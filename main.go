@@ -1,26 +1,18 @@
 package main
 
 import (
-	"github.com/gin-gonic/gin"
+	"myapp/api"
+	"os"
+
+	"github.com/sirupsen/logrus"
 )
 
-// Class that start and stop server
-// Initiated db
-
 func main() {
-	r := gin.Default()
-
-	r.GET("/", func(c *gin.Context) {
-		c.String(200, "ping, pong")
+	logrus.SetLevel(logrus.DebugLevel)
+	logrus.SetFormatter(&logrus.TextFormatter{
+		FullTimestamp:   true,
+		TimestampFormat: "02/01/2006.15:04:05",
 	})
-
-	r.GET("/users", func(c *gin.Context) {
-		c.String(200, "Usuários")
-	})
-
-	r.NoRoute(func(c *gin.Context) {
-		c.String(404, "Teste")
-	})
-
-	r.Run(":8080")
+	logrus.SetOutput(os.Stdout)
+	api.Start()
 }
