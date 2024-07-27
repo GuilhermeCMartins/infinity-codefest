@@ -1,4 +1,4 @@
-package ports
+package consumer
 
 import (
 	"fmt"
@@ -15,8 +15,8 @@ func NewConsumerManager() *ConsumerManager {
 }
 
 // AddConsumer adiciona um novo consumidor ao ConsumerManager
-func (cm *ConsumerManager) AddConsumer(amqpURI, exchange, exchangeType, queueName, key, tag string) error {
-	consumer, err := NewConsumer(amqpURI, exchange, exchangeType, queueName, key, tag)
+func (cm *ConsumerManager) AddConsumer(amqpURI, exchange, exchangeType, key, tag string, queueName QueueName) error {
+	consumer, err := NewConsumer(amqpURI, exchange, exchangeType, key, tag, queueName)
 	if err != nil {
 		return fmt.Errorf("failed to create consumer: %w", err)
 	}

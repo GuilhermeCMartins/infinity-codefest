@@ -1,8 +1,9 @@
-package ports
+package producer
 
 import (
 	"fmt"
 
+	"github.com/google/uuid"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -13,6 +14,7 @@ type Producer struct {
 	exchangeType string
 	queueName    string
 	routingKey   string
+	clientId     string
 }
 
 func NewProducer(amqpURI, exchange, exchangeType, queueName, routingKey string) (*Producer, error) {
@@ -21,6 +23,7 @@ func NewProducer(amqpURI, exchange, exchangeType, queueName, routingKey string) 
 		exchangeType: exchangeType,
 		queueName:    queueName,
 		routingKey:   routingKey,
+		clientId:     uuid.NewString(),
 	}
 
 	var err error
@@ -34,43 +37,37 @@ func NewProducer(amqpURI, exchange, exchangeType, queueName, routingKey string) 
 		return nil, fmt.Errorf("Channel: %s", err)
 	}
 
-	if _, err = p.channel.QueueDeclare(
-		p.queueName,
-		false,
-		false,
-		false,
-		false,
-		nil,
+	if err = p.channel.ExchangeDeclare(
+		queueName,           // Name of the exchange
+		amqp.ExchangeFanout, // Type of the exchange
+		false,               // Durable
+		false,               // Auto-deleted
+		false,               // Internal
+		false,               // No-wait
+		nil,                 // Arguments
 	); err != nil {
-		return nil, fmt.Errorf("Queue Declare: %s", err)
+		return nil, fmt.Errorf("Exchange Declare: %s", err)
 	}
 
 	return p, nil
 }
 
 func (p *Producer) Publish(body string) error {
-	fmt.Print(body)
+	messageId := fmt.Sprintf("hash-ng-%s", uuid.NewString())
+
 	if err := p.channel.Publish(
+		p.queueName,
 		"",
-		"users",
 		false,
 		false,
 		amqp.Publishing{
 			ContentType: "text/plain",
 			Body:        []byte(body),
+			MessageId:   messageId,
 		},
 	); err != nil {
 		return fmt.Errorf("Publish: %s", err)
 	}
-
-	// Wait for the confirmation
-	// confirm := <-p.channel.NotifyPublish(make(chan amqp.Confirmation, 1))
-
-	// if !confirm.Ack {
-	// 	return fmt.Errorf("Publish failed")
-	// }
-
-	// fmt.Print(confirm.Ack)
 
 	return nil
 }

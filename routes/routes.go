@@ -1,7 +1,7 @@
 package api
 
 import (
-	user "myapp/api"
+	"myapp/apps/user"
 	middlewares "myapp/middlewares"
 
 	"github.com/gin-gonic/gin"

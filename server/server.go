@@ -3,12 +3,12 @@ package api
 import (
 	"log"
 	"myapp/db"
+	"myapp/ports/consumer"
 	"os"
 	"os/signal"
 	"syscall"
 
 	middlewares "myapp/middlewares"
-	"myapp/ports"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -24,17 +24,30 @@ func Start() {
 
 	db.Init()
 
-	cm := ports.NewConsumerManager()
+	cm := consumer.NewConsumerManager()
 
 	errConsumer := cm.AddConsumer(
 		"amqp://guest:guest@localhost:5672/",
 		"test-exchange",
 		"direct",
-		"users",
 		"test-key",
 		"users-consumer",
+		"users",
 	)
 	if errConsumer != nil {
+		log.Fatalf("Failed to add consumer: %v", errConsumer)
+	}
+
+	errTransactions := cm.AddConsumer(
+		"amqp://guest:guest@localhost:5672/",
+		"test-exchange",
+		"direct",
+		"test-key",
+		"users-consumer",
+		"transactions",
+	)
+
+	if errTransactions != nil {
 		log.Fatalf("Failed to add consumer: %v", errConsumer)
 	}
 
