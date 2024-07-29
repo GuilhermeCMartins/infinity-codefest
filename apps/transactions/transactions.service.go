@@ -20,16 +20,16 @@ import (
 
 func createMessage(transaction models.Transaction, event models.TransactionEvent) string {
 	message := struct {
-		Id        uuid.UUID          `json:"id" gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
-		Sender    uuid.UUID          `json:"sender" gorm:"type:uuid"`
-		Receiver  uuid.UUID          `json:"receiver" gorm:"type:uuid"`
-		Amount    float32            `json:"amount"`
+		Id        uuid.UUID                 `json:"id" gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+		Sender    uuid.UUID                 `json:"sender" gorm:"type:uuid"`
+		Receiver  uuid.UUID                 `json:"receiver" gorm:"type:uuid"`
+		Amount    float32                   `json:"amount"`
 		Currency  models.Currency           `json:"currency"`
-		Hash      string             `json:"hash"`
+		Hash      string                    `json:"hash"`
 		Status    *models.TransactionStatus `json:"status"`
-		Reason    string             `json:"reason"`
-		CreatedAt time.Time          `json:"created_at"`
-		UpdatedAt time.Time          `json:"updated_at"`
+		Reason    string                    `json:"reason"`
+		CreatedAt time.Time                 `json:"created_at"`
+		UpdatedAt time.Time                 `json:"updated_at"`
 		Event     models.TransactionEvent   `json:"event" validate:"required"`
 	}{
 		Id:        transaction.Id,
@@ -169,6 +169,7 @@ func handleRequestTransaction(db *gorm.DB, payload models.TransactionPayload) st
 		Users:  		 []*models.User{&sender, &receiver},
 		CreatedAt: payload.CreatedAt,
 		UpdatedAt: payload.UpdatedAt,
+		Users:     []*models.User{&sender, &receiver},
 	}
 
 	if err := createTransaction(db, &transaction); err != nil {
@@ -179,17 +180,17 @@ func handleRequestTransaction(db *gorm.DB, payload models.TransactionPayload) st
 	fmt.Println("[CREATED TRANSACTION]")
 
 	message := struct {
-		Id        uuid.UUID          `json:"id" gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+		Id        uuid.UUID                 `json:"id" gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 		Event     models.TransactionEvent   `json:"event"`
-		Sender    uuid.UUID          `json:"sender" gorm:"type:uuid"`
-		Receiver  uuid.UUID          `json:"receiver" gorm:"type:uuid"`
-		Amount    float32            `json:"amount"`
+		Sender    uuid.UUID                 `json:"sender" gorm:"type:uuid"`
+		Receiver  uuid.UUID                 `json:"receiver" gorm:"type:uuid"`
+		Amount    float32                   `json:"amount"`
 		Currency  *models.Currency          `json:"currency"`
-		Hash      string             `json:"hash"`
+		Hash      string                    `json:"hash"`
 		Status    *models.TransactionStatus `json:"status"`
-		Reason    string             `json:"reason"`
-		CreatedAt time.Time          `json:"created_at"`
-		UpdatedAt time.Time          `json:"updated_at"`
+		Reason    string                    `json:"reason"`
+		CreatedAt time.Time                 `json:"created_at"`
+		UpdatedAt time.Time                 `json:"updated_at"`
 	}{
 		Id:        transaction.Id,
 		Status:    transaction.Status,

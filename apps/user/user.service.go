@@ -178,7 +178,6 @@ func handlePendingUser(db *gorm.DB, payload models.UserPayload) string {
 }
 
 func HandleMessageUser(db *gorm.DB, payload models.UserPayload) string {
-
 	var result string
 
 	switch payload.Event {

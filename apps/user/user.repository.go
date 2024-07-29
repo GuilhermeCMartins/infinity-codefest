@@ -94,3 +94,4 @@ func FindUserTransactionsByStatus(db *gorm.DB, userID uuid.UUID, status models.T
 
 	return transactions, count, nil
 }
+
