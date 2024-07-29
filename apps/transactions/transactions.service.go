@@ -190,6 +190,11 @@ func handlePendingTransaction(payload models.TransactionPayload) string {
 		return ""
 	}
 
+	if payload.Receiver == payload.Sender {
+		fmt.Printf("[TRANSACTION]: Transaction for the same person")
+		return ""
+	}
+
 	sender, err := user.FindUserById(payload.Sender)
 	if err != nil {
 		fmt.Printf("[TRANSACTION]: Sender not found: %v", err)
@@ -202,9 +207,33 @@ func handlePendingTransaction(payload models.TransactionPayload) string {
 		return ""
 	}
 
-	result, err := FindTxById(payload.Id)
+	transaction, err := FindTxById(payload.Id)
 	if err != nil {
 		fmt.Printf("[TRANSACTION]: Transaction not found: %v", err)
+		return ""
+	}
+
+	valid, err := verifySignature(sender.PublicKey, payload.Hash, sender.Id, receiver.Id, float64(payload.Amount), payload.CreatedAt, *payload.Currency)
+	if err != nil {
+		fmt.Errorf("[TRANSACTION]: Erro ao decodificar assinatura: %v", err)
+		return ""
+	}
+
+	if !valid {
+		fmt.Println("[TRANSACTION]: Invalid hash")
+		return ""
+	}
+
+	amountInReiceverCurrency, amountInSenderCurrency, errConvert := utils.ConvertCurrency(float64(payload.Amount), utils.Currency(*sender.Currency), utils.Currency(*receiver.Currency), utils.Currency(*payload.Currency))
+	if errConvert != nil {
+		fmt.Printf("[TRANSACTION]: Conversion failed: %v", errConvert)
+		return ""
+	}
+
+	hasValue := float64(sender.Balance) - amountInSenderCurrency
+
+	if hasValue < 0 {
+		fmt.Println("[TRANSACTION]: Insuficient balance")
 		return ""
 	}
 
@@ -219,7 +248,7 @@ func handlePendingTransaction(payload models.TransactionPayload) string {
 			UpdatedAt: time.Now(),
 		}
 
-		transactionUpdated, err := updateTransaction(result.Id, updates)
+		transactionUpdated, err := updateTransaction(transaction.Id, updates)
 		if err != nil {
 			fmt.Printf("[TRANSACTION]: Error on update transaction: %v", err)
 			return ""
@@ -235,12 +264,6 @@ func handlePendingTransaction(payload models.TransactionPayload) string {
 		UpdatedAt: time.Now(),
 	}
 
-	amountInReiceverCurrency, amountInSenderCurrency, errConvert := utils.ConvertCurrency(float64(payload.Amount), utils.Currency(*sender.Currency), utils.Currency(*receiver.Currency), utils.Currency(*payload.Currency))
-	if errConvert != nil {
-		fmt.Printf("[TRANSACTION]: Conversion failed: %v", errConvert)
-		return ""
-	}
-
 	newValueReceiver := amountInReiceverCurrency + receiver.Balance
 	newValueSender := amountInSenderCurrency - sender.Balance
 
@@ -251,12 +274,12 @@ func handlePendingTransaction(payload models.TransactionPayload) string {
 		Balance: newValueReceiver,
 	}
 
-	transactionUpdated, _ := updateTransaction(result.Id, updates)
+	transactionUpdated, _ := updateTransaction(transaction.Id, updates)
 	user.UpdateUser(receiver.Id, updateReceiver)
 	user.UpdateUser(sender.Id, updateSender)
 
 	message := utils.CreateMessage(transactionUpdated, models.TX_CREATED)
-	fmt.Println("[TRANSACTION PENDING]:", message)
+	fmt.Println("[TRANSACTION COMPLETED]:", message)
 	return message
 }
 
