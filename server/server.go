@@ -20,7 +20,7 @@ func Start() {
 	// TODO: Setup cors
 
 	logrus.Info("Starting server...")
-
+	
 	routes.SetupRoutes(r)
 
 	r.NoMethod(middlewares.MethodCheckHandler())
