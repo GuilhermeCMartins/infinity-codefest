@@ -43,7 +43,23 @@ func SetupUserRoutes(router *gin.Engine, db *gorm.DB) {
 				c.JSON(http.StatusOK, user)
 			})
 		}
-	
-		// u.GET("/users/:id", FindUserById(db))
+		{
+			u.GET("/:id/transactions", func(c *gin.Context) {
+				id := c.Param("id")
+				userId, _ := uuid.Parse(id)
+				transactions, count, err := FindUserTransactions(db, userId)
+				
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+					return
+				}
+				
+				c.JSON(http.StatusOK, gin.H{
+						"user_id": userId,
+						"count": count,
+						"transactions": transactions,
+				})
+			})
+		}
 	}
 }

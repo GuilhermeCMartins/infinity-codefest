@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	apps "myapp/apps/transactions"
 	"time"
 
 	"github.com/go-playground/validator"
@@ -218,6 +219,20 @@ func FindUserById(db *gorm.DB, id uuid.UUID) (User, error) {
 	}
 	
 	return user, nil
+}
+
+func FindUserTransactions(db *gorm.DB, userID uuid.UUID) ([]apps.Transaction, int, error) {
+	var transactions []apps.Transaction
+
+	result := db.Where("sender = ? OR receiver = ?", userID, userID).Find(&transactions)
+
+	if result.Error != nil {
+		return nil, 0, result.Error
+	}
+
+	count := len(transactions)
+
+	return transactions, count, nil
 }
 
 // findTransactionsByUserId
