@@ -81,6 +81,8 @@ func handleRequestTransaction(payload models.TransactionPayload) string {
 		return ""
 	}
 
+
+func handleRequestTransaction(payload models.TransactionPayload) string {
 	error := verifyIfCreationIsValid(payload)
 	if error != nil {
 		fmt.Printf("[TRANSACTION]: Transaction request: %v", error)
@@ -225,7 +227,7 @@ func handlePendingTransaction(payload models.TransactionPayload) string {
 			return ""
 		}
 
-		message := utils.CreateMessage(transactionUpdated, models.TX_PENDING)
+		message := createMessage(transactionUpdated, models.TX_PENDING)
 		return message
 	}
 

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"myapp/models"
-	"myapp/utils"
 	"time"
 
 	"github.com/go-playground/validator"
@@ -141,7 +140,7 @@ func handlePendingUser(payload models.UserPayload) string {
 		return ""
 	}
 
-	message := utils.CreateMessage(userUpdated, models.USER_CREATED)
+	message := utils.createMessage(userUpdated, models.USER_CREATED)
 	println("[USER PENDING]", message)
 	return message
 }
