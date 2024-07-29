@@ -87,34 +87,42 @@ func SetupUserRoutes(router *gin.Engine) {
 		})
 	})
 
-	u.GET("/:id/transactions/status/:status", func(c *gin.Context) {
-		id := c.Param("id")
-		status := c.Param("status")
-		userId, _ := uuid.Parse(id)
-		transactionStatus := models.TransactionStatus(status)
-		transactions, count, err := FindUserTransactionsByStatus(userId, transactionStatus)
+	{
+		u.GET("/:id/transactions/status/:status", func(c *gin.Context) {
+			id := c.Param("id")
+			status := c.Param("status")
+			userId, _ := uuid.Parse(id)
+			transactionStatus := models.TransactionStatus(status)
+			transactions, count, err := FindUserTransactionsByStatus(userId, transactionStatus)
 
-		//TO-DO: Refactor this to use a switch statement
-		if status != "approved" && status != "success" && status != "failed" && status != "review" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid status"})
-			return
-		}
+			validStatuses := map[models.TransactionStatus]bool{
+				models.TX_REVIEW:   true,
+				models.TX_SUCCESS:  true,
+				models.TX_FAILED:   true,
+				models.TX_APPROVED: true,
+			}
+			
+			if !validStatuses[transactionStatus] {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid status"})
+				return
+			}
+			
+			if err == gorm.ErrRecordNotFound {
+				c.JSON(http.StatusNotFound, gin.H{"message": "Invalid status"})
+				return
+			}
 
-		if err == gorm.ErrRecordNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"message": "Invalid status"})
-			return
-		}
-
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-
-		c.JSON(http.StatusOK, gin.H{
-			"user_id":      userId,
-			"status":       status,
-			"count":        count,
-			"transactions": transactions,
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			
+			c.JSON(http.StatusOK, gin.H{
+					"user_id": userId,
+					"status": status,
+					"count": count,
+					"transactions": transactions,
+			})
 		})
-	})
+	}
 }

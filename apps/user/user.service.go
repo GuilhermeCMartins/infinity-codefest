@@ -5,46 +5,13 @@ import (
 	"fmt"
 	"log"
 	"myapp/models"
+	"myapp/utils"
 	"time"
 
 	"github.com/go-playground/validator"
 	"github.com/google/uuid"
 )
 
-// TO-DO:
-func createMessage(user models.User, event models.UserEvents) string {
-	message := struct {
-		Id        uuid.UUID          `json:"id"`
-		Status    *models.UserStatus `json:"status"`
-		Event     models.UserEvents  `json:"event" validate:"required"`
-		Name      string             `json:"name" validate:"required"`
-		Email     string             `json:"email" validate:"required,email"`
-		PublicKey string             `json:"public_key" validate:"required"`
-		Balance   float64            `json:"balance" validate:"required"`
-		Currency  models.Currency    `json:"currency" validate:"required"`
-		CreatedAt time.Time          `json:"created_at" validate:"required"`
-		UpdatedAt time.Time          `json:"updated_at"`
-	}{
-		Id:        user.Id,
-		Status:    user.Status,
-		Event:     event,
-		Name:      user.Name,
-		Email:     user.Email,
-		PublicKey: user.PublicKey,
-		Balance:   user.Balance,
-		Currency:  *user.Currency,
-		CreatedAt: user.CreatedAt,
-		UpdatedAt: user.UpdatedAt,
-	}
-
-	messageJSON, err := json.Marshal(message)
-	if err != nil {
-		fmt.Errorf("Failed to marshal message: %v", err)
-		return ""
-	}
-
-	return string(messageJSON)
-}
 
 func verifyIfCreationIsValid(payload models.UserPayload) error {
 	validate := validator.New()
@@ -83,7 +50,7 @@ func handleRequestUser(payload models.UserPayload) string {
 
 		userUpdated, _ := UpdateUser(user.Id, updates)
 
-		message := createMessage(userUpdated, models.USER_PENDING)
+		message := utils.CreateMessage(userUpdated, models.USER_PENDING)
 
 		return message
 	}
@@ -160,7 +127,7 @@ func handlePendingUser(payload models.UserPayload) string {
 			return ""
 		}
 
-		message := createMessage(userUpdated, models.USER_PENDING)
+		message := utils.CreateMessage(userUpdated, models.USER_PENDING)
 		return message
 	}
 
@@ -173,7 +140,7 @@ func handlePendingUser(payload models.UserPayload) string {
 	userUpdated, _ := UpdateUser(result.Id, updates)
 	//tratar erro de banco
 
-	message := createMessage(userUpdated, models.USER_CREATED)
+	message := utils.CreateMessage(userUpdated, models.USER_CREATED)
 	println("[USER PENDING]", message)
 	return message
 }
