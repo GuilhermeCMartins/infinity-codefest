@@ -9,7 +9,7 @@ import (
 type User struct {
 	Id           uuid.UUID      `json:"id" gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 	Name         string         `json:"name"`
-	Email        string         `json:"email" gorm:"unique"`
+	Email        string         `json:"email" `
 	PublicKey    string         `json:"public_key"`
 	Status       *UserStatus    `json:"status"`
 	Balance      float64        `json:"balance" validate:"required,gte=0"`
@@ -24,7 +24,7 @@ type UserPayload struct {
 	Id        uuid.UUID   `json:"id" gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 	Event     UserEvents  `json:"event" validate:"required"`
 	Name      string      `json:"name" validate:"required"`
-	Email     string      `json:"email" gorm:"unique" validate:"required"`
+	Email     string      `json:"email" validate:"required"`
 	PublicKey string      `json:"public_key" validate:"required"`
 	Balance   float64     `json:"balance" validate:"required,gt=0"`
 	Currency  Currency    `json:"currency" validate:"required"`

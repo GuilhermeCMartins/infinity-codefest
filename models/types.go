@@ -3,11 +3,11 @@ package models
 type Currency string
 
 const (
-	IC  Currency = "IC"
-	USD Currency = "USD"
-	BRL Currency = "BRL"
-	ETH Currency = "ETH"
-	BTC Currency = "BTC"
+	IC  Currency = "ic"
+	USD Currency = "usd"
+	BRL Currency = "br"
+	ETH Currency = "eth"
+	BTC Currency = "btc"
 )
 
 type TransactionStatus string

@@ -24,34 +24,36 @@ func Start() {
 
 	routes.SetupRoutes(r)
 
-	cm := consumer.NewConsumerManager()
-
-	errConsumer := cm.AddConsumer(
-		"amqp://guest:guest@localhost:5672/",
-		"test-exchange",
-		"direct",
-		"test-key",
-		"users-consumer",
-		"users",
-	)
-	if errConsumer != nil {
-		log.Fatalf("Failed to add consumer: %v", errConsumer)
+	userSettings := consumer.ConsumerSettings{
+		AMQPURI:      "amqp://guest:guest@localhost:5672/",
+		Exchange:     "test-exchange",
+		ExchangeType: "direct",
+		Key:          "test-key",
+		Tag:          "users-consumer",
+		QueueName:    consumer.QueueName("users"),
 	}
 
-	errTransactions := cm.AddConsumer(
-		"amqp://guest:guest@localhost:5672/",
-		"test-exchange",
-		"direct",
-		"test-key",
-		"users-consumer",
-		"transactions",
-	)
-
-	if errTransactions != nil {
-		log.Fatalf("Failed to add consumer: %v", errConsumer)
+	transactionSettings := consumer.ConsumerSettings{
+		AMQPURI:      "amqp://guest:guest@localhost:5672/",
+		Exchange:     "test-exchange",
+		ExchangeType: "direct",
+		Key:          "test-key",
+		Tag:          "transactions-consumer",
+		QueueName:    consumer.QueueName("transactions"),
 	}
 
-	cm.Start()
+	cmUsers, err := consumer.NewConsumerManager(1, userSettings)
+	if err != nil {
+		log.Fatalf("Error creating Users ConsumerManager: %v", err)
+	}
+
+	cmTransaction, err := consumer.NewConsumerManager(1, transactionSettings)
+	if err != nil {
+		log.Fatalf("Error creating Transactions ConsumerManager: %v", err)
+	}
+
+	cmUsers.Start()
+	cmTransaction.Start()
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
@@ -59,7 +61,8 @@ func Start() {
 		<-quit
 		logrus.Info("Shutting down gracefully...")
 
-		cm.Stop()
+		cmUsers.Stop()
+		cmTransaction.Stop()
 
 		os.Exit(0)
 	}()

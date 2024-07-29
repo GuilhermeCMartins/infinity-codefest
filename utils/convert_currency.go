@@ -14,7 +14,6 @@ const (
 	BTC Currency = "btc"
 )
 
-// Define a map with conversion rates relative to USD
 var conversionRates = map[Currency]float64{
 	USD: 1,
 	BR:  0.2,

@@ -5,26 +5,33 @@ import (
 	"log"
 )
 
+type ConsumerSettings struct {
+	AMQPURI      string
+	Exchange     string
+	ExchangeType string
+	Key          string
+	Tag          string
+	QueueName    QueueName
+}
 type ConsumerManager struct {
 	consumers []*Consumer
 }
 
-// NewConsumerManager cria uma nova instância do ConsumerManager
-func NewConsumerManager() *ConsumerManager {
-	return &ConsumerManager{}
-}
+func NewConsumerManager(numConsumers int, config ConsumerSettings) (*ConsumerManager, error) {
+	cm := &ConsumerManager{}
 
-// AddConsumer adiciona um novo consumidor ao ConsumerManager
-func (cm *ConsumerManager) AddConsumer(amqpURI, exchange, exchangeType, key, tag string, queueName QueueName) error {
-	consumer, err := NewConsumer(amqpURI, exchange, exchangeType, key, tag, queueName)
-	if err != nil {
-		return fmt.Errorf("failed to create consumer: %w", err)
+	for i := 0; i < numConsumers; i++ {
+		consumerConfig := config
+		consumer, err := NewConsumer(consumerConfig.AMQPURI, consumerConfig.Exchange, consumerConfig.ExchangeType, consumerConfig.Key, consumerConfig.Tag, consumerConfig.QueueName)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create consumer for queue %s: %w", consumerConfig.QueueName, err)
+		}
+		cm.consumers = append(cm.consumers, consumer)
 	}
-	cm.consumers = append(cm.consumers, consumer)
-	return nil
+
+	return cm, nil
 }
 
-// Start inicia todos os consumidores gerenciados pelo ConsumerManager
 func (cm *ConsumerManager) Start() {
 	for _, c := range cm.consumers {
 		go func(consumer *Consumer) {
@@ -35,7 +42,6 @@ func (cm *ConsumerManager) Start() {
 	}
 }
 
-// Stop encerra todos os consumidores gerenciados pelo ConsumerManager
 func (cm *ConsumerManager) Stop() {
 	for _, c := range cm.consumers {
 		if err := c.Shutdown(); err != nil {

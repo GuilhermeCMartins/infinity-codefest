@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"myapp/apps/user"
 	"myapp/models"
 	"time"
@@ -116,7 +117,7 @@ func handleRequestTransaction(payload models.TransactionPayload) string {
 		return ""
 	}
 
-	hasValue := float64(sender.Balance) - amountInSenderCurrency
+	hasValue := sender.Balance - amountInSenderCurrency
 
 	if hasValue < 0 {
 		fmt.Println("[TRANSACTION]: Insuficient balance")
@@ -184,6 +185,11 @@ func handleRequestTransaction(payload models.TransactionPayload) string {
 }
 
 func handlePendingTransaction(payload models.TransactionPayload) string {
+	if payload.Event == models.TX_CREATED {
+		fmt.Printf("[TRANSACTION]: Already created")
+		return ""
+	}
+
 	error := verifyIfCreationIsValid(payload)
 	if error != nil {
 		fmt.Printf("[TRANSACTION]: Transaction request: %v", error)
@@ -201,15 +207,34 @@ func handlePendingTransaction(payload models.TransactionPayload) string {
 		return ""
 	}
 
+	userFailed := models.USER_FAILED
+
+	if sender.Status == &userFailed {
+		fmt.Printf("[TRANSACTION]: Sender status failed")
+		return ""
+	}
+
 	receiver, err := user.FindUserById(payload.Receiver)
 	if err != nil {
 		fmt.Printf("[TRANSACTION]: Sender not found: %v", err)
 		return ""
 	}
 
+	if receiver.Status == &userFailed {
+		fmt.Printf("[TRANSACTION]: Receiver status failed")
+		return ""
+	}
+
 	transaction, err := FindTxById(payload.Id)
 	if err != nil {
 		fmt.Printf("[TRANSACTION]: Transaction not found: %v", err)
+		return ""
+	}
+
+	statusCompleted := models.TX_APPROVED
+	statusFailed := models.TX_FAILED
+	if transaction.Status == &statusCompleted || transaction.Status == &statusFailed {
+		fmt.Printf("[TRANSACTION]: Already processed")
 		return ""
 	}
 
@@ -230,10 +255,13 @@ func handlePendingTransaction(payload models.TransactionPayload) string {
 		return ""
 	}
 
-	hasValue := float64(sender.Balance) - amountInSenderCurrency
+	balance := utils.Float64ToBigFloat(sender.Balance)
+	amount := utils.Float64ToBigFloat(amountInSenderCurrency)
 
-	if hasValue < 0 {
-		fmt.Println("[TRANSACTION]: Insuficient balance")
+	result := new(big.Float).Sub(balance, amount)
+
+	if result.Cmp(big.NewFloat(0)) < 0 {
+		fmt.Println("Insufficient balance.")
 		return ""
 	}
 
@@ -264,14 +292,23 @@ func handlePendingTransaction(payload models.TransactionPayload) string {
 		UpdatedAt: time.Now(),
 	}
 
-	newValueReceiver := amountInReiceverCurrency + receiver.Balance
-	newValueSender := amountInSenderCurrency - sender.Balance
+	balanceReceiver := utils.Float64ToBigFloat(receiver.Balance)
+	amountReceiver := utils.Float64ToBigFloat(amountInReiceverCurrency)
+	balanceSender := utils.Float64ToBigFloat(sender.Balance)
+	amountSender := utils.Float64ToBigFloat(amountInSenderCurrency)
+
+	newValueReceiver := new(big.Float).Add(balanceReceiver, amountReceiver)
+	newValueSender := new(big.Float).Sub(balanceSender, amountSender)
+
+	newReceiverBalance, _ := utils.BigFloatToFloat64(newValueReceiver)
+
+	newSenderBalance, _ := utils.BigFloatToFloat64(newValueSender)
 
 	updateSender := models.User{
-		Balance: newValueSender,
+		Balance: newSenderBalance,
 	}
 	updateReceiver := models.User{
-		Balance: newValueReceiver,
+		Balance: newReceiverBalance,
 	}
 
 	transactionUpdated, _ := updateTransaction(transaction.Id, updates)
