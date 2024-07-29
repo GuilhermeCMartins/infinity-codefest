@@ -1,7 +1,6 @@
 package transactions
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -9,7 +8,6 @@ import (
 )
 
 func SetupTransactionsRoutes(router *gin.Engine, db *gorm.DB) {
-	log.Println("Setting up transactions routes")
 	t := router.Group("/transactions")
 	{
 		t.GET("/", func(c *gin.Context) {
