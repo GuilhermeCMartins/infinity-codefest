@@ -2,9 +2,7 @@ package db
 
 import (
 	"log"
-
-	"myapp/apps/transactions"
-	user "myapp/apps/user"
+	"myapp/models"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -20,10 +18,18 @@ func Init() *gorm.DB {
 		log.Fatalln(err)
 	}
 
-	db.AutoMigrate(&user.User{})
-	db.AutoMigrate(&transactions.Transaction{})
+	db.AutoMigrate(&models.User{})
+	db.AutoMigrate(&models.Transaction{})
 
 	return db
 }
 
-//TODO: Add Close function
+func Close(db *gorm.DB) {
+	sqlDB, err := db.DB()
+	if err != nil {
+		log.Fatalf("Failed to get database instance: %v", err)
+	}
+	if err := sqlDB.Close(); err != nil {
+		log.Fatalf("Failed to close database connection: %v", err)
+	}
+}

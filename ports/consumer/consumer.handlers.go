@@ -7,6 +7,7 @@ import (
 	"myapp/apps/transactions"
 	"myapp/apps/user"
 	"myapp/db"
+	"myapp/models"
 	"myapp/ports/producer"
 	"strings"
 
@@ -17,7 +18,7 @@ func (c *Consumer) handleTransactions(deliveries <-chan amqp.Delivery) {
 
 	db := db.Init()
 	for d := range deliveries {
-		var payload transactions.TransactionPayload
+		var payload models.TransactionPayload
 
 		if strings.HasPrefix(d.MessageId, "hash-ng-") {
 			fmt.Println("[TRANSACTIONS] Skipping own message:", d.MessageId)
@@ -59,7 +60,7 @@ func (c *Consumer) handleUsers(deliveries <-chan amqp.Delivery) {
 
 	db := db.Init()
 	for d := range deliveries {
-		var payload user.UserPayload
+		var payload models.UserPayload
 
 		if strings.HasPrefix(d.MessageId, "hash-ng-") {
 			fmt.Println("[USERS] Skipping own message:", d.MessageId)

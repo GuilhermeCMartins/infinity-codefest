@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"myapp/models"
 	"time"
 
 	"github.com/go-playground/validator"
@@ -12,18 +13,18 @@ import (
 )
 
 // TO-DO:
-func createMessage(user User, event UserEvents) string {
+func createMessage(user models.User, event models.UserEvents) string {
 	message := struct {
-		Id        uuid.UUID   `json:"id"`
-		Status    *UserStatus `json:"status"`
-		Event     UserEvents  `json:"event" validate:"required"`
-		Name      string      `json:"name" validate:"required"`
-		Email     string      `json:"email" validate:"required,email"`
-		PublicKey string      `json:"public_key" validate:"required"`
-		Balance   float64     `json:"balance" validate:"required"`
-		Currency  Currency    `json:"currency" validate:"required"`
-		CreatedAt time.Time   `json:"created_at" validate:"required"`
-		UpdatedAt time.Time   `json:"updated_at"`
+		Id        uuid.UUID          `json:"id"`
+		Status    *models.UserStatus `json:"status"`
+		Event     models.UserEvents  `json:"event" validate:"required"`
+		Name      string             `json:"name" validate:"required"`
+		Email     string             `json:"email" validate:"required,email"`
+		PublicKey string             `json:"public_key" validate:"required"`
+		Balance   float64            `json:"balance" validate:"required"`
+		Currency  models.Currency    `json:"currency" validate:"required"`
+		CreatedAt time.Time          `json:"created_at" validate:"required"`
+		UpdatedAt time.Time          `json:"updated_at"`
 	}{
 		Id:        user.Id,
 		Status:    user.Status,
@@ -46,7 +47,7 @@ func createMessage(user User, event UserEvents) string {
 	return string(messageJSON)
 }
 
-func verifyIfCreationIsValid(payload UserPayload) error {
+func verifyIfCreationIsValid(payload models.UserPayload) error {
 	validate := validator.New()
 	err := validate.Struct(payload)
 	if err != nil {
@@ -55,12 +56,12 @@ func verifyIfCreationIsValid(payload UserPayload) error {
 	return nil
 }
 
-func handleRequestUser(db *gorm.DB, payload UserPayload) string {
+func handleRequestUser(db *gorm.DB, payload models.UserPayload) string {
 	err := verifyIfCreationIsValid(payload)
 
-	status := REVIEW
+	status := models.USER_REVIEW
 
-	user := User{
+	user := models.User{
 		Id:        uuid.New(),
 		Name:      payload.Name,
 		Email:     payload.Email,
@@ -73,9 +74,9 @@ func handleRequestUser(db *gorm.DB, payload UserPayload) string {
 	}
 
 	if err != nil {
-		failedStatus := FAILED
+		failedStatus := models.USER_FAILED
 
-		updates := User{
+		updates := models.User{
 			Status:    &failedStatus,
 			Reason:    "Falta de campos para criação de usuário",
 			UpdatedAt: time.Now(),
@@ -83,7 +84,7 @@ func handleRequestUser(db *gorm.DB, payload UserPayload) string {
 
 		userUpdated, _ := UpdateUser(db, user.Id, updates)
 
-		message := createMessage(userUpdated, PENDING)
+		message := createMessage(userUpdated, models.USER_PENDING)
 
 		return message
 	}
@@ -95,20 +96,20 @@ func handleRequestUser(db *gorm.DB, payload UserPayload) string {
 	}
 
 	message := struct {
-		Id        uuid.UUID   `json:"id"`
-		Status    *UserStatus `json:"status"`
-		Event     UserEvents  `json:"event" validate:"required"`
-		Name      string      `json:"name" validate:"required"`
-		Email     string      `json:"email" validate:"required,email"`
-		PublicKey string      `json:"public_key" validate:"required"`
-		Balance   float64     `json:"balance" validate:"required"`
-		Currency  Currency    `json:"currency" validate:"required"`
-		CreatedAt time.Time   `json:"created_at" validate:"required"`
-		UpdatedAt time.Time   `json:"updated_at"`
+		Id        uuid.UUID          `json:"id"`
+		Status    *models.UserStatus `json:"status"`
+		Event     models.UserEvents  `json:"event" validate:"required"`
+		Name      string             `json:"name" validate:"required"`
+		Email     string             `json:"email" validate:"required,email"`
+		PublicKey string             `json:"public_key" validate:"required"`
+		Balance   float64            `json:"balance" validate:"required"`
+		Currency  models.Currency    `json:"currency" validate:"required"`
+		CreatedAt time.Time          `json:"created_at" validate:"required"`
+		UpdatedAt time.Time          `json:"updated_at"`
 	}{
 		Id:        user.Id,
 		Status:    user.Status,
-		Event:     PENDING,
+		Event:     models.USER_PENDING,
 		Name:      payload.Name,
 		Email:     payload.Email,
 		PublicKey: payload.PublicKey,
@@ -130,26 +131,26 @@ func handleRequestUser(db *gorm.DB, payload UserPayload) string {
 }
 
 // TO-DO: verify if message already consumed
-func handlePendingUser(db *gorm.DB, payload UserPayload) string {
+func handlePendingUser(db *gorm.DB, payload models.UserPayload) string {
 	err := verifyIfCreationIsValid(payload)
 	if err != nil {
 		log.Printf("Validation failed: %v", err)
 		return ""
 	}
 
-	var user User
+	var user models.User
 	result := db.First(&user, "id = ?", payload.Id)
 	if result.Error != nil {
 		log.Printf("User not found: %v", result.Error)
 		return ""
 	}
 
-	status := APPROVED
+	status := models.USER_APPROVED
 
-	if *payload.Status == FAILED {
-		status := FAILED
+	if *payload.Status == models.USER_FAILED {
+		status := models.USER_FAILED
 
-		updates := User{
+		updates := models.User{
 			Status:    &status,
 			Reason:    "Reprovado pelo KYC/FRAUD",
 			UpdatedAt: time.Now(),
@@ -158,11 +159,11 @@ func handlePendingUser(db *gorm.DB, payload UserPayload) string {
 		userUpdated, _ := UpdateUser(db, user.Id, updates)
 		//tratar erro de banco
 
-		message := createMessage(userUpdated, PENDING)
+		message := createMessage(userUpdated, models.USER_PENDING)
 		return message
 	}
 
-	updates := User{
+	updates := models.User{
 		Status:    &status,
 		Reason:    payload.Reason,
 		UpdatedAt: time.Now(),
@@ -171,19 +172,19 @@ func handlePendingUser(db *gorm.DB, payload UserPayload) string {
 	userUpdated, _ := UpdateUser(db, user.Id, updates)
 	//tratar erro de banco
 
-	message := createMessage(userUpdated, CREATED)
+	message := createMessage(userUpdated, models.USER_CREATED)
 	println("[USER PENDING]", message)
 	return message
 }
 
-func HandleMessageUser(db *gorm.DB, payload UserPayload) string {
+func HandleMessageUser(db *gorm.DB, payload models.UserPayload) string {
 
 	var result string
 
 	switch payload.Event {
-	case REQUEST:
+	case models.USER_REQUEST:
 		result = handleRequestUser(db, payload)
-	case PENDING:
+	case models.USER_PENDING:
 		result = handlePendingUser(db, payload)
 	default:
 		log.Printf("Unknown event type: %s", payload.Event)
