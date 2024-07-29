@@ -16,7 +16,7 @@ type User struct {
 	Balance   		float64     									`json:"balance" `
 	Currency  		*Currency   									`json:"currency"`
 	Reason    		string      									`json:"reason"`
-	Transaction 	[]*Transaction 								`json:"transaction" gorm:"many2many:transaction_user"`
+	Transactions 	[]*Transaction 								`json:"transaction" gorm:"many2many:transaction_user"`
 	CreatedAt 		time.Time   									`json:"created_at"`
 	UpdatedAt 		time.Time   									`json:"updated_at"`
 }

@@ -15,7 +15,7 @@ import (
 		Hash      string             `json:"hash"`
 		Status    *TransactionStatus `json:"status"`
 		Reason    string             `json:"reason"`
-		User      []*User       		 `json:"user" gorm:"many2many:transaction_user"`
+		Users     []*User       		 `json:"user" gorm:"many2many:transaction_user"`
 		CreatedAt time.Time          `json:"created_at"`
 		UpdatedAt time.Time          `json:"updated_at"`
 	}
