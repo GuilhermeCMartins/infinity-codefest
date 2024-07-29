@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"myapp/apps/user"
+	"myapp/models"
 	"time"
 
 	"myapp/utils"
@@ -17,19 +18,19 @@ import (
 	"gorm.io/gorm"
 )
 
-func createMessage(transaction Transaction, event TransactionEvent) string {
+func createMessage(transaction models.Transaction, event models.TransactionEvent) string {
 	message := struct {
 		Id        uuid.UUID          `json:"id" gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 		Sender    uuid.UUID          `json:"sender" gorm:"type:uuid"`
 		Receiver  uuid.UUID          `json:"receiver" gorm:"type:uuid"`
 		Amount    float32            `json:"amount"`
-		Currency  Currency           `json:"currency"`
+		Currency  models.Currency           `json:"currency"`
 		Hash      string             `json:"hash"`
-		Status    *TransactionStatus `json:"status"`
+		Status    *models.TransactionStatus `json:"status"`
 		Reason    string             `json:"reason"`
 		CreatedAt time.Time          `json:"created_at"`
 		UpdatedAt time.Time          `json:"updated_at"`
-		Event     TransactionEvent   `json:"event" validate:"required"`
+		Event     models.TransactionEvent   `json:"event" validate:"required"`
 	}{
 		Id:        transaction.Id,
 		Status:    transaction.Status,
@@ -53,7 +54,7 @@ func createMessage(transaction Transaction, event TransactionEvent) string {
 	return string(messageJSON)
 }
 
-func verifyIfCreationIsValid(payload TransactionPayload) error {
+func verifyIfCreationIsValid(payload models.TransactionPayload) error {
 	validate := validator.New()
 	err := validate.Struct(payload)
 	if err != nil {
@@ -84,7 +85,7 @@ func floatToBytes(amount float64) []byte {
 	return []byte(fmt.Sprintf("%.2f", amount))
 }
 
-func verifySignature(publicKey, signature string, sender, receiver uuid.UUID, amount float64, createdAt time.Time, currency Currency) (bool, error) {
+func verifySignature(publicKey, signature string, sender, receiver uuid.UUID, amount float64, createdAt time.Time, currency models.Currency) (bool, error) {
 	senderBytes := sender[:]
 	receiverBytes := receiver[:]
 	amountBytes := floatToBytes(amount)
@@ -112,20 +113,20 @@ func verifySignature(publicKey, signature string, sender, receiver uuid.UUID, am
 }
 
 // TO-DO: Não permitir que faca transacao entre a mesma pessoa
-func handleRequestTransaction(db *gorm.DB, payload TransactionPayload) string {
+func handleRequestTransaction(db *gorm.DB, payload models.TransactionPayload) string {
 	error := verifyIfCreationIsValid(payload)
 	if error != nil {
 		fmt.Printf("[TRANSACTION]: Transaction request: %v", error)
 		return ""
 	}
 
-	var sender user.User
+	var sender models.User
 	if err := db.First(&sender, "id = ?", payload.Sender).Error; err != nil {
 		fmt.Printf("[TRANSACTION]: User not found: %v", err)
 		return ""
 	}
 
-	var receiver user.User
+	var receiver models.User
 	if err := db.First(&receiver, "id = ?", payload.Receiver).Error; err != nil {
 		fmt.Printf("[TRANSACTION]: User not found: %v", err)
 		return ""
@@ -155,9 +156,9 @@ func handleRequestTransaction(db *gorm.DB, payload TransactionPayload) string {
 		return ""
 	}
 
-	status := REVIEW
+	status := models.TX_REVIEW
 
-	transaction := Transaction{
+	transaction := models.Transaction{
 		Id:        uuid.New(),
 		Status:    &status,
 		Sender:    payload.Sender,
@@ -178,20 +179,20 @@ func handleRequestTransaction(db *gorm.DB, payload TransactionPayload) string {
 
 	message := struct {
 		Id        uuid.UUID          `json:"id" gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
-		Event     TransactionEvent   `json:"event"`
+		Event     models.TransactionEvent   `json:"event"`
 		Sender    uuid.UUID          `json:"sender" gorm:"type:uuid"`
 		Receiver  uuid.UUID          `json:"receiver" gorm:"type:uuid"`
 		Amount    float32            `json:"amount"`
-		Currency  *Currency          `json:"currency"`
+		Currency  *models.Currency          `json:"currency"`
 		Hash      string             `json:"hash"`
-		Status    *TransactionStatus `json:"status"`
+		Status    *models.TransactionStatus `json:"status"`
 		Reason    string             `json:"reason"`
 		CreatedAt time.Time          `json:"created_at"`
 		UpdatedAt time.Time          `json:"updated_at"`
 	}{
 		Id:        transaction.Id,
 		Status:    transaction.Status,
-		Event:     PENDING,
+		Event:     models.TX_PENDING,
 		Sender:    transaction.Sender,
 		Receiver:  transaction.Receiver,
 		Amount:    transaction.Amount,
@@ -215,38 +216,38 @@ func handleRequestTransaction(db *gorm.DB, payload TransactionPayload) string {
 }
 
 // TO-DO: Arrumar os updates e os retornos de mensagens
-func handlePendingTransaction(db *gorm.DB, payload TransactionPayload) string {
+func handlePendingTransaction(db *gorm.DB, payload models.TransactionPayload) string {
 	error := verifyIfCreationIsValid(payload)
 	if error != nil {
 		fmt.Printf("[TRANSACTION]: Transaction request: %v", error)
 		return ""
 	}
 
-	var sender user.User
+	var sender models.User
 	if err := db.First(&sender, "id = ?", payload.Sender).Error; err != nil {
 		fmt.Printf("[TRANSACTION]: User not found: %v", err)
 		return ""
 	}
 
-	var receiver user.User
+	var receiver models.User
 	if err := db.First(&receiver, "id = ?", payload.Receiver).Error; err != nil {
 		fmt.Printf("[TRANSACTION]: User not found: %v", err)
 		return ""
 	}
 
-	var transaction Transaction
+	var transaction models.Transaction
 	result := db.First(&transaction, "id = ?", payload.Id)
 	if result.Error != nil {
 		fmt.Printf("[TRANSACTION]: Transaction not found: %v", result.Error)
 		return ""
 	}
 
-	status := APPROVED
+	status := models.TX_APPROVED
 
-	if *payload.Status == FAILED {
-		status := FAILED
+	if *payload.Status == models.TX_FAILED {
+		status := models.TX_FAILED
 
-		updates := Transaction{
+		updates := models.Transaction{
 			Status:    &status,
 			Reason:    "Reprovado pelo KYC/FRAUD",
 			UpdatedAt: time.Now(),
@@ -255,11 +256,11 @@ func handlePendingTransaction(db *gorm.DB, payload TransactionPayload) string {
 		transactionUpdated, _ := updateTransaction(db, transaction.Id, updates)
 		//TO-DO: tratar erro de banco
 
-		message := createMessage(transactionUpdated, PENDING)
+		message := createMessage(transactionUpdated, models.TX_PENDING)
 		return message
 	}
 
-	updates := Transaction{
+	updates := models.Transaction{
 		Status:    &status,
 		Reason:    payload.Reason,
 		UpdatedAt: time.Now(),
@@ -274,10 +275,10 @@ func handlePendingTransaction(db *gorm.DB, payload TransactionPayload) string {
 	newValueReceiver := amountInReiceverCurrency + receiver.Balance
 	newValueSender := amountInSenderCurrency - sender.Balance
 
-	updateSender := user.User{
+	updateSender := models.User{
 		Balance: newValueSender,
 	}
-	updateReceiver := user.User{
+	updateReceiver := models.User{
 		Balance: newValueReceiver,
 	}
 
@@ -285,19 +286,19 @@ func handlePendingTransaction(db *gorm.DB, payload TransactionPayload) string {
 	user.UpdateUser(db, receiver.Id, updateReceiver)
 	user.UpdateUser(db, sender.Id, updateSender)
 
-	message := createMessage(transactionUpdated, CREATED)
+	message := createMessage(transactionUpdated, models.TX_CREATED)
 	fmt.Println("[TRANSACTION PENDING]:", message)
 	return message
 }
 
-func HandleMessageTransaction(db *gorm.DB, payload TransactionPayload) string {
+func HandleMessageTransaction(db *gorm.DB, payload models.TransactionPayload) string {
 
 	var result string
 
 	switch payload.Event {
-	case REQUEST:
+	case models.TX_REQUEST:
 		result = handleRequestTransaction(db, payload)
-	case PENDING:
+	case models.TX_PENDING:
 		result = handlePendingTransaction(db, payload)
 	default:
 		fmt.Printf("Unknown event type: %s", payload.Event)
