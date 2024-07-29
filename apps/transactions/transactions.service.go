@@ -17,42 +17,6 @@ import (
 	"github.com/google/uuid"
 )
 
-func createMessage(transaction models.Transaction, event models.TransactionEvent) string {
-	message := struct {
-		Id        uuid.UUID                 `json:"id" gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
-		Sender    uuid.UUID                 `json:"sender" gorm:"type:uuid"`
-		Receiver  uuid.UUID                 `json:"receiver" gorm:"type:uuid"`
-		Amount    float32                   `json:"amount"`
-		Currency  models.Currency           `json:"currency"`
-		Hash      string                    `json:"hash"`
-		Status    *models.TransactionStatus `json:"status"`
-		Reason    string                    `json:"reason"`
-		CreatedAt time.Time                 `json:"created_at"`
-		UpdatedAt time.Time                 `json:"updated_at"`
-		Event     models.TransactionEvent   `json:"event" validate:"required"`
-	}{
-		Id:        transaction.Id,
-		Status:    transaction.Status,
-		Sender:    transaction.Sender,
-		Receiver:  transaction.Receiver,
-		Hash:      transaction.Hash,
-		Reason:    transaction.Reason,
-		Event:     event,
-		Amount:    transaction.Amount,
-		Currency:  *transaction.Currency,
-		CreatedAt: transaction.CreatedAt,
-		UpdatedAt: transaction.UpdatedAt,
-	}
-
-	messageJSON, err := json.Marshal(message)
-	if err != nil {
-		fmt.Errorf("Failed to marshal message: %v", err)
-		return ""
-	}
-
-	return string(messageJSON)
-}
-
 func verifyIfCreationIsValid(payload models.TransactionPayload) error {
 	validate := validator.New()
 	err := validate.Struct(payload)
@@ -111,7 +75,6 @@ func verifySignature(publicKey, signature string, sender, receiver uuid.UUID, am
 	return matches, nil
 }
 
-// TO-DO: Não permitir que faca transacao entre a mesma pessoa
 func handleRequestTransaction(payload models.TransactionPayload) string {
 	error := verifyIfCreationIsValid(payload)
 	if error != nil {
@@ -215,7 +178,6 @@ func handleRequestTransaction(payload models.TransactionPayload) string {
 	return stringMessage
 }
 
-// TO-DO: Arrumar os updates e os retornos de mensagens
 func handlePendingTransaction(payload models.TransactionPayload) string {
 	error := verifyIfCreationIsValid(payload)
 	if error != nil {
@@ -258,7 +220,7 @@ func handlePendingTransaction(payload models.TransactionPayload) string {
 			return ""
 		}
 
-		message := createMessage(transactionUpdated, models.TX_PENDING)
+		message := utils.CreateMessage(transactionUpdated, models.TX_PENDING)
 		return message
 	}
 
@@ -288,7 +250,7 @@ func handlePendingTransaction(payload models.TransactionPayload) string {
 	user.UpdateUser(receiver.Id, updateReceiver)
 	user.UpdateUser(sender.Id, updateSender)
 
-	message := createMessage(transactionUpdated, models.TX_CREATED)
+	message := utils.CreateMessage(transactionUpdated, models.TX_CREATED)
 	fmt.Println("[TRANSACTION PENDING]:", message)
 	return message
 }

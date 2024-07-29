@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
@@ -17,7 +18,11 @@ func Start() {
 	r := gin.Default()
 
 	logrus.Info("Starting server...")
-	
+
+	r.Use(cors.New(cors.Config{
+		AllowOrigins: []string{"*"},
+	}))
+
 	routes.SetupRoutes(r)
 
 	db.Init()

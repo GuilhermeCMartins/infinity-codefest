@@ -8,9 +8,14 @@ import (
 	"gorm.io/gorm"
 )
 
+var instance *gorm.DB
+
 func Init() *gorm.DB {
-	// TODO: Add env variable for db url
 	dbURL := "postgres://goponey:poney@localhost:5432/goponey_db"
+
+	if instance != nil {
+		return instance
+	}
 
 	db, err := gorm.Open(postgres.Open(dbURL), &gorm.Config{})
 
