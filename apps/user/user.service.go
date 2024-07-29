@@ -170,6 +170,7 @@ func handlePendingUser(db *gorm.DB, payload UserPayload) string {
 	//tratar erro de banco
 
 	message := createMessage(userUpdated, CREATED)
+	println("[USER PENDING RETURN MESSAGE]", message)
 	return message
 }
 

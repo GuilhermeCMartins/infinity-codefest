@@ -1,7 +1,7 @@
 package main
 
 import (
-	"myapp/api"
+	api "myapp/server"
 	"os"
 
 	"github.com/sirupsen/logrus"
