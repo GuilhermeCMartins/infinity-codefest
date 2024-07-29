@@ -11,12 +11,14 @@ import (
 )
 
 func SetupRoutes(router *gin.Engine) {
+	//TODO: Fix middlewares
 	router.NoMethod(middlewares.MethodCheckHandler())
 	router.NoRoute(middlewares.NotFoundHandler())
 
 	db := db.Init()
 
-	user.SetupUserRoutes(router)
+	user.SetupUserRoutes(router, db)
+
 	transactions.SetupTransactionsRoutes(router, db)
 
 	router.GET("/", func(c *gin.Context) {

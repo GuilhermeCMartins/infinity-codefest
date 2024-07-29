@@ -8,8 +8,8 @@ import (
 
 	type Transaction struct {
 		Id        uuid.UUID          `json:"id" gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
-		Sender    string             `json:"sender"`
-		Receiver  string             `json:"receiver"`
+		Sender    uuid.UUID          `json:"sender" gorm:"type:uuid"`
+		Receiver  uuid.UUID          `json:"receiver" gorm:"type:uuid"`
 		Amount    float32            `json:"amount"`
 		Currency  *Currency          `json:"currency"`
 		Hash      string             `json:"hash"`
@@ -23,8 +23,8 @@ import (
 	type TransactionPayload struct {
 		Id        uuid.UUID          `json:"id" gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 		Event     TransactionEvent   `json:"event"`
-		Sender    string             `json:"sender" validate:"required"`
-		Receiver  string             `json:"receiver" validate:"required"`
+		Sender    uuid.UUID          `json:"sender" gorm:"type:uuid" validate:"required"`
+		Receiver  uuid.UUID          `json:"receiver" gorm:"type:uuid" validate:"required"`
 		Amount    float32            `json:"amount" validate:"required,gt=0"`
 		Currency  *Currency          `json:"currency"`
 		Hash      string             `json:"hash"`
