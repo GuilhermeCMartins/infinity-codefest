@@ -11,7 +11,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// TO-DO:
 func createMessage(user models.User, event models.UserEvents) string {
 	message := struct {
 		Id        uuid.UUID          `json:"id"`
@@ -58,6 +57,12 @@ func verifyIfCreationIsValid(payload models.UserPayload) error {
 func handleRequestUser(payload models.UserPayload) string {
 	err := verifyIfCreationIsValid(payload)
 
+	existingUser := FindUserByEmail(payload.Email)
+	if existingUser {
+		fmt.Println("User already exists")
+		return ""
+	}
+
 	status := models.USER_REVIEW
 
 	user := models.User{
@@ -90,7 +95,7 @@ func handleRequestUser(payload models.UserPayload) string {
 
 	err = CreateUser(&user)
 	if err != nil {
-		log.Printf("Failed to create user: %v", err)
+		fmt.Printf("Failed to create user: %v", err)
 		return ""
 	}
 
@@ -129,7 +134,6 @@ func handleRequestUser(payload models.UserPayload) string {
 	return stringMessage
 }
 
-// TO-DO: verify if message already consumed
 func handlePendingUser(payload models.UserPayload) string {
 	err := verifyIfCreationIsValid(payload)
 	if err != nil {
@@ -154,7 +158,7 @@ func handlePendingUser(payload models.UserPayload) string {
 			UpdatedAt: time.Now(),
 		}
 
-		userUpdated, _ := UpdateUser(result.Id, updates)
+		userUpdated, err := UpdateUser(result.Id, updates)
 		if err != nil {
 			fmt.Printf("[USER]: Error on update user: %v", err)
 			return ""
@@ -170,8 +174,11 @@ func handlePendingUser(payload models.UserPayload) string {
 		UpdatedAt: time.Now(),
 	}
 
-	userUpdated, _ := UpdateUser(result.Id, updates)
-	//tratar erro de banco
+	userUpdated, err := UpdateUser(result.Id, updates)
+	if err != nil {
+		fmt.Printf("[USER]: Error on update user: %v", err)
+		return ""
+	}
 
 	message := createMessage(userUpdated, models.USER_CREATED)
 	println("[USER PENDING]", message)

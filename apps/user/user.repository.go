@@ -61,6 +61,17 @@ func FindUserById(id uuid.UUID) (models.User, error) {
 	return user, nil
 }
 
+func FindUserByEmail(email string) bool {
+	db := db.Init()
+
+	var count int64
+	result := db.Model(&models.User{}).Where("email = ?", email).Count(&count)
+	if result.Error != nil {
+		return false
+	}
+	return count > 0
+}
+
 func FindUserTransactions(userID uuid.UUID) ([]models.Transaction, int, error) {
 	var transactions []models.Transaction
 	db := db.Init()

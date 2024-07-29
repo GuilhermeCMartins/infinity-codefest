@@ -46,7 +46,7 @@ func createMessage(transaction models.Transaction, event models.TransactionEvent
 
 	messageJSON, err := json.Marshal(message)
 	if err != nil {
-		fmt.Errorf("Failed to marshal message: %v", err)
+		fmt.Errorf("Failed to marshal message:", err)
 		return ""
 	}
 
@@ -111,8 +111,12 @@ func verifySignature(publicKey, signature string, sender, receiver uuid.UUID, am
 	return matches, nil
 }
 
-// TO-DO: Não permitir que faca transacao entre a mesma pessoa
 func handleRequestTransaction(payload models.TransactionPayload) string {
+	if payload.Sender == payload.Receiver {
+		fmt.Printf("[TRANSACTION]: Sender equal to receiver")
+		return ""
+	}
+
 	error := verifyIfCreationIsValid(payload)
 	if error != nil {
 		fmt.Printf("[TRANSACTION]: Transaction request: %v", error)

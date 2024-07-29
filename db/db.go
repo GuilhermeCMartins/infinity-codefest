@@ -9,7 +9,6 @@ import (
 )
 
 func Init() *gorm.DB {
-	// TODO: Add env variable for db url
 	dbURL := "postgres://goponey:poney@localhost:5432/goponey_db"
 
 	db, err := gorm.Open(postgres.Open(dbURL), &gorm.Config{})
