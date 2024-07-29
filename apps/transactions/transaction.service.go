@@ -20,8 +20,8 @@ import (
 func createMessage(transaction Transaction, event TransactionEvent) string {
 	message := struct {
 		Id        uuid.UUID          `json:"id" gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
-		Sender    string             `json:"sender"`
-		Receiver  string             `json:"receiver"`
+		Sender    uuid.UUID          `json:"sender" gorm:"type:uuid"`
+		Receiver  uuid.UUID          `json:"receiver" gorm:"type:uuid"`
 		Amount    float32            `json:"amount"`
 		Currency  Currency           `json:"currency"`
 		Hash      string             `json:"hash"`
@@ -179,8 +179,8 @@ func handleRequestTransaction(db *gorm.DB, payload TransactionPayload) string {
 	message := struct {
 		Id        uuid.UUID          `json:"id" gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 		Event     TransactionEvent   `json:"event"`
-		Sender    string             `json:"sender"`
-		Receiver  string             `json:"receiver"`
+		Sender    uuid.UUID          `json:"sender" gorm:"type:uuid"`
+		Receiver  uuid.UUID          `json:"receiver" gorm:"type:uuid"`
 		Amount    float32            `json:"amount"`
 		Currency  *Currency          `json:"currency"`
 		Hash      string             `json:"hash"`
