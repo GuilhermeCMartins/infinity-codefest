@@ -33,8 +33,14 @@ func SetupUserRoutes(router *gin.Engine, db *gorm.DB) {
 				id := c.Param("id")
 				userId, _ := uuid.Parse(id)
 
-				user, err := FindUserById(db, userId)
 				
+				user, err := FindUserById(db, userId)
+
+				if err == gorm.ErrRecordNotFound {
+					c.JSON(http.StatusNotFound, gin.H{"message": "User not found"})
+					return
+				}
+
 				if err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 					return

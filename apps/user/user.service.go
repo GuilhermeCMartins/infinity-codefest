@@ -234,7 +234,3 @@ func FindUserTransactions(db *gorm.DB, userID uuid.UUID) ([]models.Transaction, 
 
 	return transactions, count, nil
 }
-
-// findTransactionsByUserId
-// findUserTransactionByStatus /users/:id/transactions/:tx
-// findUserTransactionByStatus /users/:id/transactions/status/:status
