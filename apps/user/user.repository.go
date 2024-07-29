@@ -2,18 +2,21 @@ package user
 
 import (
 	"fmt"
+	"myapp/db"
 	"myapp/models"
 
 	"github.com/google/uuid"
-	"gorm.io/gorm"
 )
 
-func CreateUser(db *gorm.DB, user *models.User) error {
+func CreateUser(user *models.User) error {
+	db := db.Init()
+
 	return db.Create(user).Error
 }
 
-func UpdateUser(db *gorm.DB, userId uuid.UUID, updates models.User) (models.User, error) {
+func UpdateUser(userId uuid.UUID, updates models.User) (models.User, error) {
 	var user models.User
+	db := db.Init()
 
 	result := db.First(&user, "id = ?", userId)
 	if result.Error != nil {
@@ -31,31 +34,36 @@ func UpdateUser(db *gorm.DB, userId uuid.UUID, updates models.User) (models.User
 	return user, nil
 }
 
-func FindAllUsers(db *gorm.DB) (users []models.User, count int, err error) {
+func FindAllUsers() (users []models.User, count int, err error) {
+	db := db.Init()
+
 	result := db.Find(&users)
-	
+
 	if result.Error != nil {
-			return nil, 0, result.Error
+		return nil, 0, result.Error
 	}
-	
+
 	count = len(users)
-	
+
 	return users, count, nil
 }
 
-func FindUserById(db *gorm.DB, id uuid.UUID) (models.User, error) {
+func FindUserById(id uuid.UUID) (models.User, error) {
 	var user models.User
+	db := db.Init()
+
 	result := db.First(&user, "id = ?", id)
-	
+
 	if result.Error != nil {
 		return models.User{}, result.Error
 	}
-	
+
 	return user, nil
 }
 
-func FindUserTransactions(db *gorm.DB, userID uuid.UUID) ([]models.Transaction, int, error) {
+func FindUserTransactions(userID uuid.UUID) ([]models.Transaction, int, error) {
 	var transactions []models.Transaction
+	db := db.Init()
 
 	result := db.Where("sender = ? OR receiver = ?", userID, userID).Find(&transactions)
 
@@ -68,8 +76,9 @@ func FindUserTransactions(db *gorm.DB, userID uuid.UUID) ([]models.Transaction, 
 	return transactions, count, nil
 }
 
-func FindUserTransactionByTransactionId(db *gorm.DB, userID uuid.UUID, txID uuid.UUID) (models.Transaction, string, error) {
+func FindUserTransactionByTransactionId(userID uuid.UUID, txID uuid.UUID) (models.Transaction, string, error) {
 	var transaction models.Transaction
+	db := db.Init()
 
 	result := db.Where("sender = ? OR receiver = ?", userID, userID).First(&transaction, "id = ?", txID)
 
@@ -82,8 +91,9 @@ func FindUserTransactionByTransactionId(db *gorm.DB, userID uuid.UUID, txID uuid
 	return transaction, sender, nil
 }
 
-func FindUserTransactionsByStatus(db *gorm.DB, userID uuid.UUID, status models.TransactionStatus) ([]models.Transaction, int, error) {
+func FindUserTransactionsByStatus(userID uuid.UUID, status models.TransactionStatus) ([]models.Transaction, int, error) {
 	var transactions []models.Transaction
+	db := db.Init()
 
 	result := db.Where("sender = ? OR receiver = ?", userID, userID).Where("status LIKE ?", status).Find(&transactions)
 
@@ -94,4 +104,3 @@ func FindUserTransactionsByStatus(db *gorm.DB, userID uuid.UUID, status models.T
 
 	return transactions, count, nil
 }
-

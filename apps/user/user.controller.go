@@ -9,20 +9,20 @@ import (
 	"gorm.io/gorm"
 )
 
-func SetupUserRoutes(router *gin.Engine, db *gorm.DB) {
+func SetupUserRoutes(router *gin.Engine) {
 	u := router.Group("/users")
 
 	u.GET("", func(c *gin.Context) {
-		users, count, err := FindAllUsers(db)
-		
+		users, count, err := FindAllUsers()
+
 		if err != nil {
-						c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-						return
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
 		}
-		
+
 		c.JSON(http.StatusOK, gin.H{
-				"users": users,
-				"count": count,
+			"users": users,
+			"count": count,
 		})
 	})
 
@@ -30,7 +30,7 @@ func SetupUserRoutes(router *gin.Engine, db *gorm.DB) {
 		id := c.Param("id")
 		userId, _ := uuid.Parse(id)
 
-		user, err := FindUserById(db, userId)
+		user, err := FindUserById(userId)
 
 		if err == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusNotFound, gin.H{"message": "User not found"})
@@ -41,24 +41,24 @@ func SetupUserRoutes(router *gin.Engine, db *gorm.DB) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		
+
 		c.JSON(http.StatusOK, user)
 	})
 
 	u.GET("/:id/transactions", func(c *gin.Context) {
 		id := c.Param("id")
 		userId, _ := uuid.Parse(id)
-		transactions, count, err := FindUserTransactions(db, userId)
-		
+		transactions, count, err := FindUserTransactions(userId)
+
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		
+
 		c.JSON(http.StatusOK, gin.H{
-				"user_id": userId,
-				"count": count,
-				"transactions": transactions,
+			"user_id":      userId,
+			"count":        count,
+			"transactions": transactions,
 		})
 	})
 
@@ -67,23 +67,23 @@ func SetupUserRoutes(router *gin.Engine, db *gorm.DB) {
 		txId := c.Param("tx")
 		userId, _ := uuid.Parse(id)
 		txUUID, _ := uuid.Parse(txId)
-		transaction, sender, err := FindUserTransactionByTransactionId(db, userId, txUUID)
+		transaction, sender, err := FindUserTransactionByTransactionId(userId, txUUID)
 
 		if err == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusNotFound, gin.H{"message": "User or transaction not found"})
 			return
 		}
-		
+
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
-		} 
+		}
 
 		c.JSON(http.StatusOK, gin.H{
-				"user_id": userId,
-				"id": txUUID,
-				"sender": sender,
-				"transaction": transaction,
+			"user_id":     userId,
+			"id":          txUUID,
+			"sender":      sender,
+			"transaction": transaction,
 		})
 	})
 
@@ -92,14 +92,14 @@ func SetupUserRoutes(router *gin.Engine, db *gorm.DB) {
 		status := c.Param("status")
 		userId, _ := uuid.Parse(id)
 		transactionStatus := models.TransactionStatus(status)
-		transactions, count, err := FindUserTransactionsByStatus(db, userId, transactionStatus)
+		transactions, count, err := FindUserTransactionsByStatus(userId, transactionStatus)
 
 		//TO-DO: Refactor this to use a switch statement
-		if (status != "approved" && status != "success" && status != "failed" && status != "review") {
+		if status != "approved" && status != "success" && status != "failed" && status != "review" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid status"})
 			return
 		}
-		
+
 		if err == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusNotFound, gin.H{"message": "Invalid status"})
 			return
@@ -109,12 +109,12 @@ func SetupUserRoutes(router *gin.Engine, db *gorm.DB) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		
+
 		c.JSON(http.StatusOK, gin.H{
-				"user_id": userId,
-				"status": status,
-				"count": count,
-				"transactions": transactions,
+			"user_id":      userId,
+			"status":       status,
+			"count":        count,
+			"transactions": transactions,
 		})
 	})
 }

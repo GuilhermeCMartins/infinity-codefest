@@ -6,7 +6,6 @@ import (
 	"log"
 	"myapp/apps/transactions"
 	"myapp/apps/user"
-	"myapp/db"
 	"myapp/models"
 	"myapp/ports/producer"
 	"strings"
@@ -16,7 +15,6 @@ import (
 
 func (c *Consumer) handleTransactions(deliveries <-chan amqp.Delivery) {
 
-	db := db.Init()
 	for d := range deliveries {
 		var payload models.TransactionPayload
 
@@ -39,7 +37,7 @@ func (c *Consumer) handleTransactions(deliveries <-chan amqp.Delivery) {
 			defer producer.Shutdown()
 		}
 
-		result := transactions.HandleMessageTransaction(db, payload)
+		result := transactions.HandleMessageTransaction(payload)
 		if result != "" {
 
 			err := producer.Publish(result)
@@ -58,7 +56,6 @@ func (c *Consumer) handleTransactions(deliveries <-chan amqp.Delivery) {
 
 func (c *Consumer) handleUsers(deliveries <-chan amqp.Delivery) {
 
-	db := db.Init()
 	for d := range deliveries {
 		var payload models.UserPayload
 
@@ -81,7 +78,7 @@ func (c *Consumer) handleUsers(deliveries <-chan amqp.Delivery) {
 			defer producer.Shutdown()
 		}
 
-		result := user.HandleMessageUser(db, payload)
+		result := user.HandleMessageUser(payload)
 		if result != "" {
 
 			err := producer.Publish(result)

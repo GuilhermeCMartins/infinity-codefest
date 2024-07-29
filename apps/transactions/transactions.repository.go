@@ -2,18 +2,34 @@ package transactions
 
 import (
 	"fmt"
+	"myapp/db"
 	"myapp/models"
 
 	"github.com/google/uuid"
-	"gorm.io/gorm"
 )
 
-func createTransaction(db *gorm.DB, transaction *models.Transaction) error {
+func createTransaction(transaction *models.Transaction) error {
+	db := db.Init()
+
 	return db.Create(transaction).Error
 }
 
-func updateTransaction(db *gorm.DB, transactionId uuid.UUID, updates models.Transaction) (models.Transaction, error) {
+func FindTxById(id uuid.UUID) (models.Transaction, error) {
+	var tx models.Transaction
+	db := db.Init()
+
+	result := db.First(&tx, "id = ?", id)
+
+	if result.Error != nil {
+		return models.Transaction{}, result.Error
+	}
+
+	return tx, nil
+}
+
+func updateTransaction(transactionId uuid.UUID, updates models.Transaction) (models.Transaction, error) {
 	var transaction models.Transaction
+	db := db.Init()
 
 	result := db.First(&transaction, "id = ?", transactionId)
 	if result.Error != nil {
@@ -31,12 +47,14 @@ func updateTransaction(db *gorm.DB, transactionId uuid.UUID, updates models.Tran
 	return transaction, nil
 }
 
-func FindAllTransactions(db *gorm.DB) (transactions []models.Transaction, count int, err error) {
+func FindAllTransactions() (transactions []models.Transaction, count int, err error) {
+	db := db.Init()
+
 	result := db.Model(&models.Transaction{}).Preload("Users").Find(&transactions)
+
 	if result.Error != nil {
 		return nil, 0, result.Error
 	}
 	count = len(transactions)
 	return transactions, count, nil
 }
-
