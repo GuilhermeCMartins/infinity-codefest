@@ -1,6 +1,7 @@
-package transaction
+package transactions
 
 import (
+	"myapp/apps/user"
 	"time"
 
 	"github.com/google/uuid"
@@ -15,6 +16,7 @@ type Transaction struct {
 	Hash      string             `json:"hash"`
 	Status    *TransactionStatus `json:"status"`
 	Reason    string             `json:"reason"`
+	User      []*user.User       `json:"user" gorm:"many2many:transaction_user"`
 	CreatedAt time.Time          `json:"created_at"`
 	UpdatedAt time.Time          `json:"updated_at"`
 }

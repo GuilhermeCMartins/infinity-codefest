@@ -1,4 +1,4 @@
-package transaction
+package transactions
 
 type Currency string
 

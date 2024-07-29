@@ -1,4 +1,4 @@
-package transaction
+package transactions
 
 import (
 	"bytes"
@@ -304,4 +304,13 @@ func HandleMessageTransaction(db *gorm.DB, payload TransactionPayload) string {
 	}
 
 	return result
+}
+
+func FindAllTransactions(db *gorm.DB) (transactions []Transaction, count int, err error) {
+	result := db.Model(&Transaction{}).Preload("User").Find(&transactions)
+	if result.Error != nil {
+		return nil, 0, result.Error
+	}
+	count = len(transactions)
+	return transactions, count, nil
 }
