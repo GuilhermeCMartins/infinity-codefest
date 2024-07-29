@@ -30,3 +30,13 @@ func updateTransaction(db *gorm.DB, transactionId uuid.UUID, updates models.Tran
 
 	return transaction, nil
 }
+
+func FindAllTransactions(db *gorm.DB) (transactions []models.Transaction, count int, err error) {
+	result := db.Model(&models.Transaction{}).Preload("Users").Find(&transactions)
+	if result.Error != nil {
+		return nil, 0, result.Error
+	}
+	count = len(transactions)
+	return transactions, count, nil
+}
+

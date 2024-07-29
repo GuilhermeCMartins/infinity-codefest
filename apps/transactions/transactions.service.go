@@ -166,6 +166,7 @@ func handleRequestTransaction(db *gorm.DB, payload models.TransactionPayload) st
 		Amount:    payload.Amount,
 		Currency:  payload.Currency,
 		Hash:      payload.Hash,
+		Users:  		 []*models.User{&sender, &receiver},
 		CreatedAt: payload.CreatedAt,
 		UpdatedAt: payload.UpdatedAt,
 	}
@@ -305,13 +306,4 @@ func HandleMessageTransaction(db *gorm.DB, payload models.TransactionPayload) st
 	}
 
 	return result
-}
-
-func FindAllTransactions(db *gorm.DB) (transactions []models.Transaction, count int, err error) {
-	result := db.Model(&models.Transaction{}).Preload("User").Find(&transactions)
-	if result.Error != nil {
-		return nil, 0, result.Error
-	}
-	count = len(transactions)
-	return transactions, count, nil
 }
