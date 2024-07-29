@@ -128,6 +128,7 @@ func handleRequestUser(db *gorm.DB, payload UserPayload) string {
 	return stringMessage
 }
 
+// TO-DO: verify if message already consumed
 func handlePendingUser(db *gorm.DB, payload UserPayload) string {
 	err := verifyIfCreationIsValid(payload)
 	if err != nil {

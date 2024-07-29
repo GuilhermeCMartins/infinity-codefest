@@ -5,23 +5,29 @@ import "fmt"
 type Currency string
 
 const (
-	IC  Currency = "IC"
-	USD Currency = "USD"
-	BRL Currency = "BRL"
-	ETH Currency = "ETH"
-	BTC Currency = "BTC"
+	IC  Currency = "ic"
+	USD Currency = "usd"
+	BRL Currency = "brl"
+	ETH Currency = "eth"
+	BTC Currency = "btc"
 )
 
 func ConvertCurrency(amount float64, requestCurrency Currency, transactionCurrency Currency, receiverCurrency Currency) (float64, float64, error) {
 	conversionRates := map[string]float64{
-		"USD": 1,
-		"BRL": 0.2,
-		"ETH": 3000,
-		"BTC": 60000,
-		"IC":  1000000,
+		"usd": 1,
+		"brl": 0.2,
+		"eth": 3000,
+		"btc": 60000,
+		"ic":  1000000,
 	}
 
+	print(requestCurrency)
+	print(transactionCurrency)
+	print(receiverCurrency)
+
 	convert := func(amount float64, fromCurrency Currency, toCurrency Currency) (float64, error) {
+		print(fromCurrency)
+		print(toCurrency)
 		fromRate, fromExists := conversionRates[string(fromCurrency)]
 		toRate, toExists := conversionRates[string(toCurrency)]
 

@@ -3,7 +3,7 @@ package db
 import (
 	"log"
 	transaction "myapp/apps/transactions"
-	"os/user"
+	user "myapp/apps/user"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"

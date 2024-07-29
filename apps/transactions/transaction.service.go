@@ -1,18 +1,18 @@
 package transaction
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
-	"math/big"
 	"myapp/apps/user"
 	"time"
 
 	"myapp/utils"
 
-	eth "github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/go-playground/validator"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -46,36 +46,6 @@ func createMessage(transaction Transaction, event TransactionEvent) string {
 	return string(messageJSON)
 }
 
-func validateHash(payload TransactionPayload, publicKey string) (bool, error) {
-	data := fmt.Sprintf("%s%s%f%s%s", payload.Sender, payload.Receiver, payload.Amount, payload.CreatedAt.String(), payload.Currency)
-
-	hash := eth.Keccak256([]byte(data))
-
-	pubKeyBytes, err := hex.DecodeString(publicKey)
-	if err != nil {
-		return false, fmt.Errorf("failed to decode public key: %v", err)
-	}
-	pubKey, err := eth.UnmarshalPubkey(pubKeyBytes)
-	if err != nil {
-		return false, fmt.Errorf("failed to unmarshal public key: %v", err)
-	}
-
-	sigBytes, err := hex.DecodeString(payload.Hash)
-	if err != nil {
-		return false, fmt.Errorf("failed to decode signature: %v", err)
-	}
-
-	r := big.Int{}
-	s := big.Int{}
-	sigLen := len(sigBytes)
-	r.SetBytes(sigBytes[:(sigLen / 2)])
-	s.SetBytes(sigBytes[(sigLen / 2):])
-
-	isValid := ecdsa.Verify(pubKey, hash, &r, &s)
-
-	return isValid, nil
-}
-
 func verifyIfCreationIsValid(payload TransactionPayload) error {
 	validate := validator.New()
 	err := validate.Struct(payload)
@@ -85,28 +55,75 @@ func verifyIfCreationIsValid(payload TransactionPayload) error {
 	return nil
 }
 
-// TO-DO: Arrumar os updates e os retornos de mensagens
+func decodePublicKey(pubKeyHex string) (*ecdsa.PublicKey, error) {
+	pubKeyBytes, err := hex.DecodeString(pubKeyHex)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(pubKeyBytes) != 65 {
+		return nil, fmt.Errorf("invalid public key length: %d", len(pubKeyBytes))
+	}
+
+	pubKey, err := crypto.UnmarshalPubkey(pubKeyBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return pubKey, nil
+}
+
+func floatToBytes(amount float64) []byte {
+	return []byte(fmt.Sprintf("%.2f", amount))
+}
+
+func verifySignature(publicKey, signature string, sender, receiver uuid.UUID, amount float64, createdAt time.Time, currency Currency) (bool, error) {
+	senderBytes := sender[:]
+	receiverBytes := receiver[:]
+	amountBytes := floatToBytes(amount)
+	createdAtBytes := []byte(createdAt.Format(time.RFC3339))
+	currencyBytes := []byte(currency)
+
+	data := append(senderBytes, receiverBytes...)
+	data = append(data, amountBytes...)
+	data = append(data, createdAtBytes...)
+	data = append(data, currencyBytes...)
+
+	hash := crypto.Keccak256Hash(data)
+
+	pubKey, _ := decodePublicKey(publicKey)
+
+	publicKeyBytes := crypto.FromECDSAPub(pubKey)
+
+	signatureBytes, _ := hex.DecodeString(signature)
+
+	sigPublicKey, _ := crypto.Ecrecover(hash.Bytes(), signatureBytes)
+
+	matches := bytes.Equal(sigPublicKey, publicKeyBytes)
+
+	return matches, nil
+}
+
 func handleRequestTransaction(db *gorm.DB, payload TransactionPayload) string {
 	error := verifyIfCreationIsValid(payload)
 
 	status := REVIEW
 
-	var requested user.User
-	if err := db.First(&requested, "public_key = ?", payload.Sender).Error; err != nil {
+	var sender user.User
+	if err := db.First(&sender, "id = ?", payload.Sender).Error; err != nil {
 		log.Printf("User not found: %v", err)
 		return ""
 	}
 
 	var receiver user.User
-	if err := db.First(&requested, "public_key = ?", payload.Receiver).Error; err != nil {
+	if err := db.First(&receiver, "id = ?", payload.Receiver).Error; err != nil {
 		log.Printf("User not found: %v", err)
 		return ""
 	}
 
-	valid, errHash := validateHash(payload, requested.PublicKey)
-	if errHash != nil {
-		log.Printf("Hash validation failed: %v", errHash)
-		return ""
+	valid, err := verifySignature(sender.PublicKey, payload.Hash, sender.Id, receiver.Id, float64(payload.Amount), payload.CreatedAt, *payload.Currency)
+	if err != nil {
+		log.Fatalf("Erro ao decodificar assinatura: %v", err)
 	}
 
 	if !valid {
@@ -124,13 +141,13 @@ func handleRequestTransaction(db *gorm.DB, payload TransactionPayload) string {
 		return ""
 	}
 
-	senderAmount, _, errConvert := utils.ConvertCurrency(float64(payload.Amount), utils.Currency(*requested.Currency), utils.Currency(*receiver.Currency), utils.Currency(*payload.Currency))
+	senderAmount, _, errConvert := utils.ConvertCurrency(float64(payload.Amount), utils.Currency(*sender.Currency), utils.Currency(*receiver.Currency), utils.Currency(*payload.Currency))
 	if errConvert != nil {
 		log.Printf("Conversion failed: %v", errConvert)
 		return ""
 	}
 
-	hasValue := senderAmount - float64(requested.Balance)
+	hasValue := senderAmount - float64(sender.Balance)
 
 	if hasValue < 0 {
 		log.Printf("Insuficient balance")
