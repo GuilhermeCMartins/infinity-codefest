@@ -76,13 +76,6 @@ func verifySignature(publicKey, signature string, sender, receiver uuid.UUID, am
 }
 
 func handleRequestTransaction(payload models.TransactionPayload) string {
-	if payload.Sender == payload.Receiver {
-		fmt.Printf("[TRANSACTION]: Receiver == Sender")
-		return ""
-	}
-
-
-func handleRequestTransaction(payload models.TransactionPayload) string {
 	error := verifyIfCreationIsValid(payload)
 	if error != nil {
 		fmt.Printf("[TRANSACTION]: Transaction request: %v", error)
@@ -227,7 +220,7 @@ func handlePendingTransaction(payload models.TransactionPayload) string {
 			return ""
 		}
 
-		message := createMessage(transactionUpdated, models.TX_PENDING)
+		message := utils.CreateMessage(transactionUpdated, models.TX_PENDING)
 		return message
 	}
 
