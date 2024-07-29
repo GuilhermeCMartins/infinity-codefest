@@ -13,7 +13,7 @@ type User struct {
 	Email        string         `json:"email"`
 	PublicKey    string         `json:"public_key"`
 	Status       *UserStatus    `json:"status"`
-	Balance      float64        `json:"balance" validate:"required,gt=0"`
+	Balance      float64        `json:"balance" validate:"required,gte=0"`
 	Currency     *Currency      `json:"currency"`
 	Reason       string         `json:"reason"`
 	Transactions []*Transaction `json:"transaction" gorm:"many2many:transaction_user"`

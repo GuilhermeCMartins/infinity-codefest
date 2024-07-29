@@ -17,7 +17,7 @@ func Start() {
 	r := gin.Default()
 
 	logrus.Info("Starting server...")
-
+	
 	routes.SetupRoutes(r)
 
 	db.Init()
