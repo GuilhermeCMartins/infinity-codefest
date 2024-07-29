@@ -8,7 +8,6 @@ import (
 	"gorm.io/gorm"
 )
 
-
 func SetupUserRoutes(router *gin.Engine, db *gorm.DB) {
 	u := router.Group("/users")
 
@@ -33,7 +32,6 @@ func SetupUserRoutes(router *gin.Engine, db *gorm.DB) {
 				id := c.Param("id")
 				userId, _ := uuid.Parse(id)
 
-				
 				user, err := FindUserById(db, userId)
 
 				if err == gorm.ErrRecordNotFound {
