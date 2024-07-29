@@ -3,34 +3,45 @@ package db
 import (
 	"log"
 	"myapp/models"
+	"sync"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
-var instance *gorm.DB
+var (
+	lock     = &sync.Mutex{}
+	instance *gorm.DB
+)
 
-func Init() *gorm.DB {
-	dbURL := "postgres://goponey:poney@localhost:5432/goponey_db"
+func GetInstance() *gorm.DB {
+	if instance == nil {
+		lock.Lock()
+		defer lock.Unlock()
+		if instance == nil {
+			dbURL := "postgres://goponey:poney@localhost:5432/goponey_db"
 
-	if instance != nil {
-		return instance
+			db, err := gorm.Open(postgres.Open(dbURL), &gorm.Config{})
+			if err != nil {
+				log.Fatalln(err)
+			}
+
+			db.AutoMigrate(&models.User{})
+			db.AutoMigrate(&models.Transaction{})
+
+			instance = db
+		}
 	}
 
-	db, err := gorm.Open(postgres.Open(dbURL), &gorm.Config{})
-
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	db.AutoMigrate(&models.User{})
-	db.AutoMigrate(&models.Transaction{})
-
-	return db
+	return instance
 }
 
-func Close(db *gorm.DB) {
-	sqlDB, err := db.DB()
+func Close() {
+	if instance == nil {
+		return
+	}
+
+	sqlDB, err := instance.DB()
 	if err != nil {
 		log.Fatalf("Failed to get database instance: %v", err)
 	}

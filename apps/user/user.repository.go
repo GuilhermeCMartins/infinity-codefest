@@ -9,14 +9,14 @@ import (
 )
 
 func CreateUser(user *models.User) error {
-	db := db.Init()
+	db := db.GetInstance()
 
 	return db.Create(user).Error
 }
 
 func UpdateUser(userId uuid.UUID, updates models.User) (models.User, error) {
 	var user models.User
-	db := db.Init()
+	db := db.GetInstance()
 
 	result := db.First(&user, "id = ?", userId)
 	if result.Error != nil {
@@ -35,7 +35,7 @@ func UpdateUser(userId uuid.UUID, updates models.User) (models.User, error) {
 }
 
 func FindAllUsers() (users []models.User, count int, err error) {
-	db := db.Init()
+	db := db.GetInstance()
 
 	result := db.Find(&users)
 
@@ -50,7 +50,7 @@ func FindAllUsers() (users []models.User, count int, err error) {
 
 func FindUserById(id uuid.UUID) (models.User, error) {
 	var user models.User
-	db := db.Init()
+	db := db.GetInstance()
 
 	result := db.First(&user, "id = ?", id)
 
@@ -62,7 +62,7 @@ func FindUserById(id uuid.UUID) (models.User, error) {
 }
 
 func FindUserByEmail(email string) bool {
-	db := db.Init()
+	db := db.GetInstance()
 
 	var count int64
 	result := db.Model(&models.User{}).Where("email = ?", email).Count(&count)
@@ -74,7 +74,7 @@ func FindUserByEmail(email string) bool {
 
 func FindUserTransactions(userID uuid.UUID) ([]models.Transaction, int, error) {
 	var transactions []models.Transaction
-	db := db.Init()
+	db := db.GetInstance()
 
 	result := db.Where("sender = ? OR receiver = ?", userID, userID).Find(&transactions)
 
@@ -89,7 +89,7 @@ func FindUserTransactions(userID uuid.UUID) ([]models.Transaction, int, error) {
 
 func FindUserTransactionByTransactionId(userID uuid.UUID, txID uuid.UUID) (models.Transaction, string, error) {
 	var transaction models.Transaction
-	db := db.Init()
+	db := db.GetInstance()
 
 	result := db.Where("sender = ? OR receiver = ?", userID, userID).First(&transaction, "id = ?", txID)
 
@@ -104,7 +104,7 @@ func FindUserTransactionByTransactionId(userID uuid.UUID, txID uuid.UUID) (model
 
 func FindUserTransactionsByStatus(userID uuid.UUID, status models.TransactionStatus) ([]models.Transaction, int, error) {
 	var transactions []models.Transaction
-	db := db.Init()
+	db := db.GetInstance()
 
 	result := db.Where("sender = ? OR receiver = ?", userID, userID).Where("status LIKE ?", status).Find(&transactions)
 

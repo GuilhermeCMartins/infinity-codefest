@@ -2,7 +2,6 @@ package api
 
 import (
 	"log"
-	"myapp/db"
 	"myapp/ports/consumer"
 	"myapp/routes"
 	"os"
@@ -24,8 +23,6 @@ func Start() {
 	}))
 
 	routes.SetupRoutes(r)
-
-	db.Init()
 
 	cm := consumer.NewConsumerManager()
 

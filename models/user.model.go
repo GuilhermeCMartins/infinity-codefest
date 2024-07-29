@@ -6,7 +6,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// TO-DO: email need to be unique
 type User struct {
 	Id           uuid.UUID      `json:"id" gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 	Name         string         `json:"name"`

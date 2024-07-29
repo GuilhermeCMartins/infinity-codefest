@@ -9,14 +9,14 @@ import (
 )
 
 func createTransaction(transaction *models.Transaction) error {
-	db := db.Init()
+	db := db.GetInstance()
 
 	return db.Create(transaction).Error
 }
 
 func FindTxById(id uuid.UUID) (models.Transaction, error) {
 	var tx models.Transaction
-	db := db.Init()
+	db := db.GetInstance()
 
 	result := db.First(&tx, "id = ?", id)
 
@@ -29,7 +29,7 @@ func FindTxById(id uuid.UUID) (models.Transaction, error) {
 
 func updateTransaction(transactionId uuid.UUID, updates models.Transaction) (models.Transaction, error) {
 	var transaction models.Transaction
-	db := db.Init()
+	db := db.GetInstance()
 
 	result := db.First(&transaction, "id = ?", transactionId)
 	if result.Error != nil {
@@ -48,7 +48,7 @@ func updateTransaction(transactionId uuid.UUID, updates models.Transaction) (mod
 }
 
 func FindAllTransactions() (transactions []models.Transaction, count int, err error) {
-	db := db.Init()
+	db := db.GetInstance()
 
 	result := db.Model(&models.Transaction{}).Preload("Users").Find(&transactions)
 
