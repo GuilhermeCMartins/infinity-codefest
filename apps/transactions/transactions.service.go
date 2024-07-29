@@ -82,6 +82,11 @@ func handleRequestTransaction(payload models.TransactionPayload) string {
 		return ""
 	}
 
+	if payload.Receiver == payload.Sender {
+		fmt.Printf("[TRANSACTION]: Transaction for the same person")
+		return ""
+	}
+
 	sender, err := user.FindUserById(payload.Sender)
 	if err != nil {
 		fmt.Printf("[TRANSACTION]: Sender not found: %v", err)
@@ -90,7 +95,7 @@ func handleRequestTransaction(payload models.TransactionPayload) string {
 
 	receiver, err := user.FindUserById(payload.Receiver)
 	if err != nil {
-		fmt.Printf("[TRANSACTION]: Sender not found: %v", err)
+		fmt.Printf("[TRANSACTION]: Receiver not found: %v", err)
 		return ""
 	}
 

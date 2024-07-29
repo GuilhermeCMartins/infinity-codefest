@@ -15,7 +15,7 @@ services:
     container_name: "codefest"
     image: leonardocbsr/codefest:latest
     environment:
-      NO_TIMEOUT: true
+      NO_TIMEOUT: false
       POPULATE_USERS: false
       QUEUE_HOST: rabbitmq
       QUEUE_PORT: 5672

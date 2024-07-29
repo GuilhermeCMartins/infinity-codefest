@@ -20,6 +20,7 @@ func (c *Consumer) handleTransactions(deliveries <-chan amqp.Delivery) {
 
 		if strings.HasPrefix(d.MessageId, "hash-ng-") {
 			fmt.Println("[TRANSACTIONS] Skipping own message:", d.MessageId)
+			d.Ack(false)
 			continue
 		}
 
@@ -34,6 +35,7 @@ func (c *Consumer) handleTransactions(deliveries <-chan amqp.Delivery) {
 		producer, err := producer.NewProducer("amqp://guest:guest@localhost:5672/", "", "direct", "transactions", "test-key")
 		if err != nil {
 			log.Fatalf("Failed to create producer: %v", err)
+			d.Ack(false)
 			defer producer.Shutdown()
 		}
 
@@ -61,6 +63,7 @@ func (c *Consumer) handleUsers(deliveries <-chan amqp.Delivery) {
 
 		if strings.HasPrefix(d.MessageId, "hash-ng-") {
 			fmt.Println("[USERS] Skipping own message:", d.MessageId)
+			d.Ack(false)
 			continue
 		}
 
@@ -75,6 +78,7 @@ func (c *Consumer) handleUsers(deliveries <-chan amqp.Delivery) {
 		producer, err := producer.NewProducer("amqp://guest:guest@localhost:5672/", "", "direct", "users", "test-key")
 		if err != nil {
 			log.Fatalf("Failed to create producer: %v", err)
+			d.Ack(false)
 			defer producer.Shutdown()
 		}
 
