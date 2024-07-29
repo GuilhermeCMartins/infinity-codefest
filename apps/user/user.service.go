@@ -235,6 +235,33 @@ func FindUserTransactions(db *gorm.DB, userID uuid.UUID) ([]models.Transaction, 
 	return transactions, count, nil
 }
 
+func FindUserTransactionByTransactionId(db *gorm.DB, userID uuid.UUID, txID uuid.UUID) (models.Transaction, string, error) {
+	var transaction models.Transaction
+
+	result := db.Where("sender = ? OR receiver = ?", userID, userID).First(&transaction, "id = ?", txID)
+
+	sender := transaction.Sender.String()
+
+	if result.Error != nil {
+		return models.Transaction{}, "", result.Error
+	}
+
+	return transaction, sender, nil
+}
+
+func FindUserTransactionsByStatus(db *gorm.DB, userID uuid.UUID, status models.TransactionStatus) ([]models.Transaction, int, error) {
+	var transactions []models.Transaction
+
+	result := db.Where("sender = ? OR receiver = ?", userID, userID).Where("status LIKE ?", status).Find(&transactions)
+
+	if result.Error != nil {
+		return nil, 0, result.Error
+	}
+	count := len(transactions)
+
+	return transactions, count, nil
+}
+
 // findTransactionsByUserId
 // findUserTransactionByStatus /users/:id/transactions/:tx
 // findUserTransactionByStatus /users/:id/transactions/status/:status
