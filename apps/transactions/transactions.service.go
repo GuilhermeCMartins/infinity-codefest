@@ -15,8 +15,43 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/go-playground/validator"
 	"github.com/google/uuid"
-	"gorm.io/gorm"
 )
+
+func createMessage(transaction models.Transaction, event models.TransactionEvent) string {
+	message := struct {
+		Id        uuid.UUID                 `json:"id" gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+		Sender    uuid.UUID                 `json:"sender" gorm:"type:uuid"`
+		Receiver  uuid.UUID                 `json:"receiver" gorm:"type:uuid"`
+		Amount    float32                   `json:"amount"`
+		Currency  models.Currency           `json:"currency"`
+		Hash      string                    `json:"hash"`
+		Status    *models.TransactionStatus `json:"status"`
+		Reason    string                    `json:"reason"`
+		CreatedAt time.Time                 `json:"created_at"`
+		UpdatedAt time.Time                 `json:"updated_at"`
+		Event     models.TransactionEvent   `json:"event" validate:"required"`
+	}{
+		Id:        transaction.Id,
+		Status:    transaction.Status,
+		Sender:    transaction.Sender,
+		Receiver:  transaction.Receiver,
+		Hash:      transaction.Hash,
+		Reason:    transaction.Reason,
+		Event:     event,
+		Amount:    transaction.Amount,
+		Currency:  *transaction.Currency,
+		CreatedAt: transaction.CreatedAt,
+		UpdatedAt: transaction.UpdatedAt,
+	}
+
+	messageJSON, err := json.Marshal(message)
+	if err != nil {
+		fmt.Errorf("Failed to marshal message: %v", err)
+		return ""
+	}
+
+	return string(messageJSON)
+}
 
 func verifyIfCreationIsValid(payload models.TransactionPayload) error {
 	validate := validator.New()
@@ -76,27 +111,23 @@ func verifySignature(publicKey, signature string, sender, receiver uuid.UUID, am
 	return matches, nil
 }
 
-func handleRequestTransaction(db *gorm.DB, payload models.TransactionPayload) string {
+// TO-DO: Não permitir que faca transacao entre a mesma pessoa
+func handleRequestTransaction(payload models.TransactionPayload) string {
 	error := verifyIfCreationIsValid(payload)
 	if error != nil {
-		fmt.Errorf("[TRANSACTION]: Transaction request: %v", error)
+		fmt.Printf("[TRANSACTION]: Transaction request: %v", error)
 		return ""
 	}
 
-	var sender models.User
-	if err := db.First(&sender, "id = ?", payload.Sender).Error; err != nil {
-		fmt.Errorf("[TRANSACTION]: User not found: %v", err)
+	sender, err := user.FindUserById(payload.Sender)
+	if err != nil {
+		fmt.Printf("[TRANSACTION]: Sender not found: %v", err)
 		return ""
 	}
 
-	var receiver models.User
-	if err := db.First(&receiver, "id = ?", payload.Receiver).Error; err != nil {
-		fmt.Errorf("[TRANSACTION]: User not found: %v", err)
-		return ""
-	}
-
-	if sender.Id == receiver.Id {
-		fmt.Errorf("[TRANSACTION]: Cannot perform transaction between the same person")
+	receiver, err := user.FindUserById(payload.Receiver)
+	if err != nil {
+		fmt.Printf("[TRANSACTION]: Sender not found: %v", err)
 		return ""
 	}
 
@@ -107,7 +138,7 @@ func handleRequestTransaction(db *gorm.DB, payload models.TransactionPayload) st
 	}
 
 	if !valid {
-		fmt.Errorf("[TRANSACTION]: Invalid hash")
+		fmt.Println("[TRANSACTION]: Invalid hash")
 		return ""
 	}
 
@@ -120,7 +151,7 @@ func handleRequestTransaction(db *gorm.DB, payload models.TransactionPayload) st
 	hasValue := float64(sender.Balance) - amountInSenderCurrency
 
 	if hasValue < 0 {
-		fmt.Errorf("[TRANSACTION]: Insuficient balance")
+		fmt.Println("[TRANSACTION]: Insuficient balance")
 		return ""
 	}
 
@@ -184,29 +215,29 @@ func handleRequestTransaction(db *gorm.DB, payload models.TransactionPayload) st
 	return stringMessage
 }
 
-func handlePendingTransaction(db *gorm.DB, payload models.TransactionPayload) string {
+// TO-DO: Arrumar os updates e os retornos de mensagens
+func handlePendingTransaction(payload models.TransactionPayload) string {
 	error := verifyIfCreationIsValid(payload)
 	if error != nil {
-		fmt.Errorf("[TRANSACTION]: Transaction request: %v", error)
+		fmt.Printf("[TRANSACTION]: Transaction request: %v", error)
 		return ""
 	}
 
-	var sender models.User
-	if err := db.First(&sender, "id = ?", payload.Sender).Error; err != nil {
-		fmt.Errorf("[TRANSACTION]: User not found: %v", err)
+	sender, err := user.FindUserById(payload.Sender)
+	if err != nil {
+		fmt.Printf("[TRANSACTION]: Sender not found: %v", err)
 		return ""
 	}
 
-	var receiver models.User
-	if err := db.First(&receiver, "id = ?", payload.Receiver).Error; err != nil {
-		fmt.Errorf("[TRANSACTION]: User not found: %v", err)
+	receiver, err := user.FindUserById(payload.Receiver)
+	if err != nil {
+		fmt.Printf("[TRANSACTION]: Sender not found: %v", err)
 		return ""
 	}
 
-	var transaction models.Transaction
-	result := db.First(&transaction, "id = ?", payload.Id)
-	if result.Error != nil {
-		fmt.Errorf("[TRANSACTION]: Transaction not found: %v", result.Error)
+	result, err := FindTxById(payload.Id)
+	if err != nil {
+		fmt.Printf("[TRANSACTION]: Transaction not found: %v", err)
 		return ""
 	}
 
@@ -221,13 +252,13 @@ func handlePendingTransaction(db *gorm.DB, payload models.TransactionPayload) st
 			UpdatedAt: time.Now(),
 		}
 
-		transactionUpdated, err := updateTransaction(transaction.Id, updates)
+		transactionUpdated, err := updateTransaction(result.Id, updates)
 		if err != nil {
-			fmt.Errorf("[TRANSACTION]: Failed to update transaction: %v", err)
+			fmt.Printf("[TRANSACTION]: Error on update transaction: %v", err)
 			return ""
 		}
 
-		message := utils.CreateMessage(transactionUpdated, models.TX_PENDING)
+		message := createMessage(transactionUpdated, models.TX_PENDING)
 		return message
 	}
 
@@ -239,7 +270,7 @@ func handlePendingTransaction(db *gorm.DB, payload models.TransactionPayload) st
 
 	amountInReiceverCurrency, amountInSenderCurrency, errConvert := utils.ConvertCurrency(float64(payload.Amount), utils.Currency(*sender.Currency), utils.Currency(*receiver.Currency), utils.Currency(*payload.Currency))
 	if errConvert != nil {
-		fmt.Errorf("[TRANSACTION]: Conversion failed: %v", errConvert)
+		fmt.Printf("[TRANSACTION]: Conversion failed: %v", errConvert)
 		return ""
 	}
 
@@ -253,38 +284,24 @@ func handlePendingTransaction(db *gorm.DB, payload models.TransactionPayload) st
 		Balance: newValueReceiver,
 	}
 
-	transactionUpdated, err := updateTransaction(transaction.Id, updates)
-	if err != nil {
-		fmt.Errorf("[TRANSACTION]: Failed to update transaction: %v", err)
-		return ""
-	}
+	transactionUpdated, _ := updateTransaction(result.Id, updates)
+	user.UpdateUser(receiver.Id, updateReceiver)
+	user.UpdateUser(sender.Id, updateSender)
 
-	_, err = user.UpdateUser(receiver.Id, updateReceiver)
-	if err != nil {
-		fmt.Errorf("[TRANSACTION]: Failed to update receiver user: %v", err)
-		return ""
-	}
-
-	_, err = user.UpdateUser(sender.Id, updateSender)
-	if err != nil {
-		fmt.Errorf("[TRANSACTION]: Failed to update sender user: %v", err)
-		return ""
-	}
-
-	message := utils.CreateMessage(transactionUpdated, models.TX_CREATED)
+	message := createMessage(transactionUpdated, models.TX_CREATED)
 	fmt.Println("[TRANSACTION PENDING]:", message)
 	return message
 }
 
-func HandleMessageTransaction(db *gorm.DB, payload models.TransactionPayload) string {
+func HandleMessageTransaction(payload models.TransactionPayload) string {
 
 	var result string
 
 	switch payload.Event {
 	case models.TX_REQUEST:
-		result = handleRequestTransaction(db, payload)
+		result = handleRequestTransaction(payload)
 	case models.TX_PENDING:
-		result = handlePendingTransaction(db, payload)
+		result = handlePendingTransaction(payload)
 	default:
 		fmt.Printf("Unknown event type: %s", payload.Event)
 	}
