@@ -191,3 +191,35 @@ func HandleMessageUser(db *gorm.DB, payload UserPayload) string {
 
 	return result
 }
+
+type UsersResponse struct {
+	Users []User `json:"users"`
+	Count int    `json:"count"`
+}
+
+func FindAllUsers(db *gorm.DB) (users []User, count int, err error) {
+	result := db.Find(&users)
+	
+	if result.Error != nil {
+			return nil, 0, result.Error
+	}
+	
+	count = len(users)
+	
+	return users, count, nil
+}
+
+func FindUserById(db *gorm.DB, id uuid.UUID) (User, error) {
+	var user User
+	result := db.First(&user, "id = ?", id)
+	
+	if result.Error != nil {
+		return User{}, result.Error
+	}
+	
+	return user, nil
+}
+
+// findTransactionsByUserId
+// findUserTransactionByStatus /users/:id/transactions/:tx
+// findUserTransactionByStatus /users/:id/transactions/status/:status

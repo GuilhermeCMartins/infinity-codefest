@@ -13,7 +13,7 @@ type User struct {
 	Email     string      `json:"email"`
 	PublicKey string      `json:"public_key"`
 	Status    *UserStatus `json:"status"`
-	Balance   float64     `json:"balance" `
+	Balance   float64     `json:"balance"`
 	Currency  *Currency   `json:"currency"`
 	Reason    string      `json:"reason"`
 	CreatedAt time.Time   `json:"created_at"`

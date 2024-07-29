@@ -3,12 +3,12 @@ package api
 import (
 	"log"
 	"myapp/db"
+	middlewares "myapp/middlewares"
 	"myapp/ports/consumer"
+	"myapp/routes"
 	"os"
 	"os/signal"
 	"syscall"
-
-	middlewares "myapp/middlewares"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -17,7 +17,11 @@ import (
 func Start() {
 	r := gin.Default()
 
+	// TODO: Setup cors
+
 	logrus.Info("Starting server...")
+
+	routes.SetupRoutes(r)
 
 	r.NoMethod(middlewares.MethodCheckHandler())
 	r.NoRoute(middlewares.NotFoundHandler())
