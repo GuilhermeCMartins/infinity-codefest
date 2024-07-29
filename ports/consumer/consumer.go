@@ -41,12 +41,6 @@ func NewConsumer(amqpURI, exchange, exchangeType, key, tag string, queueName Que
 		return nil, fmt.Errorf("Channel: %s", err)
 	}
 
-	err := c.channel.Qos(
-		1,     // Prefetch count: número máximo de mensagens que o consumidor pode receber antes de enviar ack
-		0,     // Prefetch size: tamanho máximo das mensagens que o consumidor pode receber
-		false, // Global: aplica a configuração para todos os consumidores no canal (use true para aplicar globalmente)
-	)
-
 	q, err := c.channel.QueueDeclare(
 		"",    // name
 		false, // durable
