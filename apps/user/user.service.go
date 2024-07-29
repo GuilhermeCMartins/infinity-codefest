@@ -9,7 +9,6 @@ import (
 
 	"github.com/go-playground/validator"
 	"github.com/google/uuid"
-	"gorm.io/gorm"
 )
 
 // TO-DO:
@@ -56,7 +55,7 @@ func verifyIfCreationIsValid(payload models.UserPayload) error {
 	return nil
 }
 
-func handleRequestUser(db *gorm.DB, payload models.UserPayload) string {
+func handleRequestUser(payload models.UserPayload) string {
 	err := verifyIfCreationIsValid(payload)
 
 	status := models.USER_REVIEW
@@ -82,14 +81,14 @@ func handleRequestUser(db *gorm.DB, payload models.UserPayload) string {
 			UpdatedAt: time.Now(),
 		}
 
-		userUpdated, _ := UpdateUser(db, user.Id, updates)
+		userUpdated, _ := UpdateUser(user.Id, updates)
 
 		message := createMessage(userUpdated, models.USER_PENDING)
 
 		return message
 	}
 
-	err = CreateUser(db, &user)
+	err = CreateUser(&user)
 	if err != nil {
 		log.Printf("Failed to create user: %v", err)
 		return ""
@@ -131,17 +130,16 @@ func handleRequestUser(db *gorm.DB, payload models.UserPayload) string {
 }
 
 // TO-DO: verify if message already consumed
-func handlePendingUser(db *gorm.DB, payload models.UserPayload) string {
+func handlePendingUser(payload models.UserPayload) string {
 	err := verifyIfCreationIsValid(payload)
 	if err != nil {
 		log.Printf("Validation failed: %v", err)
 		return ""
 	}
 
-	var user models.User
-	result := db.First(&user, "id = ?", payload.Id)
-	if result.Error != nil {
-		log.Printf("User not found: %v", result.Error)
+	result, err := FindUserById(payload.Id)
+	if err != nil {
+		log.Printf("User not found: %v", err)
 		return ""
 	}
 
@@ -156,8 +154,11 @@ func handlePendingUser(db *gorm.DB, payload models.UserPayload) string {
 			UpdatedAt: time.Now(),
 		}
 
-		userUpdated, _ := UpdateUser(db, user.Id, updates)
-		//tratar erro de banco
+		userUpdated, _ := UpdateUser(result.Id, updates)
+		if err != nil {
+			fmt.Printf("[USER]: Error on update user: %v", err)
+			return ""
+		}
 
 		message := createMessage(userUpdated, models.USER_PENDING)
 		return message
@@ -169,7 +170,7 @@ func handlePendingUser(db *gorm.DB, payload models.UserPayload) string {
 		UpdatedAt: time.Now(),
 	}
 
-	userUpdated, _ := UpdateUser(db, user.Id, updates)
+	userUpdated, _ := UpdateUser(result.Id, updates)
 	//tratar erro de banco
 
 	message := createMessage(userUpdated, models.USER_CREATED)
@@ -177,14 +178,14 @@ func handlePendingUser(db *gorm.DB, payload models.UserPayload) string {
 	return message
 }
 
-func HandleMessageUser(db *gorm.DB, payload models.UserPayload) string {
+func HandleMessageUser(payload models.UserPayload) string {
 	var result string
 
 	switch payload.Event {
 	case models.USER_REQUEST:
-		result = handleRequestUser(db, payload)
+		result = handleRequestUser(payload)
 	case models.USER_PENDING:
-		result = handlePendingUser(db, payload)
+		result = handlePendingUser(payload)
 	default:
 		log.Printf("Unknown event type: %s", payload.Event)
 	}
@@ -194,5 +195,5 @@ func HandleMessageUser(db *gorm.DB, payload models.UserPayload) string {
 
 type UsersResponse struct {
 	Users []models.User `json:"users"`
-	Count int    `json:"count"`
+	Count int           `json:"count"`
 }

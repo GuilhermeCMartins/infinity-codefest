@@ -4,14 +4,13 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
-func SetupTransactionsRoutes(router *gin.Engine, db *gorm.DB) {
+func SetupTransactionsRoutes(router *gin.Engine) {
 	t := router.Group("/transactions")
 	{
 		t.GET("/", func(c *gin.Context) {
-			transactions, count, err := FindAllTransactions(db)
+			transactions, count, err := FindAllTransactions()
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
