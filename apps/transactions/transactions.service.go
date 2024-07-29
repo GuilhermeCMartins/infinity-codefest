@@ -169,7 +169,6 @@ func handleRequestTransaction(db *gorm.DB, payload models.TransactionPayload) st
 		Users:  		 []*models.User{&sender, &receiver},
 		CreatedAt: payload.CreatedAt,
 		UpdatedAt: payload.UpdatedAt,
-		Users:     []*models.User{&sender, &receiver},
 	}
 
 	if err := createTransaction(db, &transaction); err != nil {
