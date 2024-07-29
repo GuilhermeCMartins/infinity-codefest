@@ -12,6 +12,5 @@ func SetupRoutes(router *gin.Engine) {
 	db := db.Init()
 
 	user.SetupUserRoutes(router, db)
-
 	transactions.SetupTransactionsRoutes(router, db)
 }

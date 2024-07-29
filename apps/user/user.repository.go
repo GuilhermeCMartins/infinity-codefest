@@ -30,3 +30,40 @@ func UpdateUser(db *gorm.DB, userId uuid.UUID, updates models.User) (models.User
 
 	return user, nil
 }
+
+func FindAllUsers(db *gorm.DB) (users []models.User, count int, err error) {
+	result := db.Find(&users)
+	
+	if result.Error != nil {
+			return nil, 0, result.Error
+	}
+	
+	count = len(users)
+	
+	return users, count, nil
+}
+
+func FindUserById(db *gorm.DB, id uuid.UUID) (models.User, error) {
+	var user models.User
+	result := db.First(&user, "id = ?", id)
+	
+	if result.Error != nil {
+		return models.User{}, result.Error
+	}
+	
+	return user, nil
+}
+
+func FindUserTransactions(db *gorm.DB, userID uuid.UUID) ([]models.Transaction, int, error) {
+	var transactions []models.Transaction
+
+	result := db.Where("sender = ? OR receiver = ?", userID, userID).Find(&transactions)
+
+	if result.Error != nil {
+		return nil, 0, result.Error
+	}
+
+	count := len(transactions)
+
+	return transactions, count, nil
+}
