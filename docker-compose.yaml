@@ -13,10 +13,10 @@ services:
     restart: always
   codefest:
     container_name: "codefest"
-    image: leonardocbsr/codefest:latest
+    image: leonardocbsr/codefest:latest-linux
     environment:
       NO_TIMEOUT: false
-      POPULATE_USERS: false
+      POPULATE_USERS: true
       QUEUE_HOST: rabbitmq
       QUEUE_PORT: 5672
       QUEUE_USER: guest

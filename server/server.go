@@ -4,6 +4,7 @@ import (
 	"log"
 	"myapp/db"
 	"myapp/ports/consumer"
+	"myapp/routes"
 	"os"
 	"os/signal"
 	"syscall"
@@ -18,6 +19,8 @@ func Start() {
 	r := gin.Default()
 
 	logrus.Info("Starting server...")
+
+	routes.SetupRoutes(r)
 
 	r.NoMethod(middlewares.MethodCheckHandler())
 	r.NoRoute(middlewares.NotFoundHandler())

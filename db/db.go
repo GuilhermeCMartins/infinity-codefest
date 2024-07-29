@@ -2,7 +2,8 @@ package db
 
 import (
 	"log"
-	transaction "myapp/apps/transactions"
+
+	"myapp/apps/transactions"
 	user "myapp/apps/user"
 
 	"gorm.io/driver/postgres"
@@ -20,7 +21,7 @@ func Init() *gorm.DB {
 	}
 
 	db.AutoMigrate(&user.User{})
-	db.AutoMigrate(&transaction.Transaction{})
+	db.AutoMigrate(&transactions.Transaction{})
 
 	return db
 }

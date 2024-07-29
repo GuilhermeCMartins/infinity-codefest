@@ -4,8 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-
-	transaction "myapp/apps/transactions"
+	"myapp/apps/transactions"
 	"myapp/apps/user"
 	"myapp/db"
 	"myapp/ports/producer"
@@ -18,7 +17,7 @@ func (c *Consumer) handleTransactions(deliveries <-chan amqp.Delivery) {
 
 	db := db.Init()
 	for d := range deliveries {
-		var payload transaction.TransactionPayload
+		var payload transactions.TransactionPayload
 
 		if strings.HasPrefix(d.MessageId, "hash-ng-") {
 			fmt.Println("[TRANSACTIONS] Skipping own message:", d.MessageId)
@@ -39,7 +38,7 @@ func (c *Consumer) handleTransactions(deliveries <-chan amqp.Delivery) {
 			defer producer.Shutdown()
 		}
 
-		result := transaction.HandleMessageTransaction(db, payload)
+		result := transactions.HandleMessageTransaction(db, payload)
 		if result != "" {
 
 			err := producer.Publish(result)
