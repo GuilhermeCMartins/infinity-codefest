@@ -11,7 +11,7 @@ func CreateUser(db *gorm.DB, user *User) error {
 	return db.Create(user).Error
 }
 
-func updateUser(db *gorm.DB, userId uuid.UUID, updates User) (User, error) {
+func UpdateUser(db *gorm.DB, userId uuid.UUID, updates User) (User, error) {
 	var user User
 
 	result := db.First(&user, "id = ?", userId)

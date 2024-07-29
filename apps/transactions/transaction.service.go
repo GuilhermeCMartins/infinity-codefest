@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"log"
 	"myapp/apps/user"
 	"time"
 
@@ -20,16 +19,24 @@ import (
 
 func createMessage(transaction Transaction, event TransactionEvent) string {
 	message := struct {
-		Id        uuid.UUID          `json:"id"`
+		Id        uuid.UUID          `json:"id" gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+		Sender    string             `json:"sender"`
+		Receiver  string             `json:"receiver"`
+		Amount    float32            `json:"amount"`
+		Currency  Currency           `json:"currency"`
+		Hash      string             `json:"hash"`
 		Status    *TransactionStatus `json:"status"`
-		Event     TransactionEvent   `json:"event" validate:"required"`
-		Amount    float32            `json:"amount" validate:"required"`
-		Currency  Currency           `json:"currency" validate:"required"`
-		CreatedAt time.Time          `json:"created_at" validate:"required"`
+		Reason    string             `json:"reason"`
+		CreatedAt time.Time          `json:"created_at"`
 		UpdatedAt time.Time          `json:"updated_at"`
+		Event     TransactionEvent   `json:"event" validate:"required"`
 	}{
 		Id:        transaction.Id,
 		Status:    transaction.Status,
+		Sender:    transaction.Sender,
+		Receiver:  transaction.Receiver,
+		Hash:      transaction.Hash,
+		Reason:    transaction.Reason,
 		Event:     event,
 		Amount:    transaction.Amount,
 		Currency:  *transaction.Currency,
@@ -104,55 +111,51 @@ func verifySignature(publicKey, signature string, sender, receiver uuid.UUID, am
 	return matches, nil
 }
 
+// TO-DO: Não permitir que faca transacao entre a mesma pessoa
 func handleRequestTransaction(db *gorm.DB, payload TransactionPayload) string {
 	error := verifyIfCreationIsValid(payload)
-
-	status := REVIEW
+	if error != nil {
+		fmt.Printf("[TRANSACTION]: Transaction request: %v", error)
+		return ""
+	}
 
 	var sender user.User
 	if err := db.First(&sender, "id = ?", payload.Sender).Error; err != nil {
-		log.Printf("User not found: %v", err)
+		fmt.Printf("[TRANSACTION]: User not found: %v", err)
 		return ""
 	}
 
 	var receiver user.User
 	if err := db.First(&receiver, "id = ?", payload.Receiver).Error; err != nil {
-		log.Printf("User not found: %v", err)
+		fmt.Printf("[TRANSACTION]: User not found: %v", err)
 		return ""
 	}
 
 	valid, err := verifySignature(sender.PublicKey, payload.Hash, sender.Id, receiver.Id, float64(payload.Amount), payload.CreatedAt, *payload.Currency)
 	if err != nil {
-		log.Fatalf("Erro ao decodificar assinatura: %v", err)
+		fmt.Errorf("[TRANSACTION]: Erro ao decodificar assinatura: %v", err)
+		return ""
 	}
 
 	if !valid {
-		log.Printf("Invalid hash")
-		failedStatus := FAILED
-
-		updates := Transaction{
-			Status:    &failedStatus,
-			Reason:    "Invalid hash",
-			UpdatedAt: time.Now(),
-		}
-
-		updateTransaction(db, payload.Id, updates)
-
+		fmt.Println("[TRANSACTION]: Invalid hash")
 		return ""
 	}
 
-	senderAmount, _, errConvert := utils.ConvertCurrency(float64(payload.Amount), utils.Currency(*sender.Currency), utils.Currency(*receiver.Currency), utils.Currency(*payload.Currency))
+	_, amountInSenderCurrency, errConvert := utils.ConvertCurrency(float64(payload.Amount), utils.Currency(*sender.Currency), utils.Currency(*receiver.Currency), utils.Currency(*payload.Currency))
 	if errConvert != nil {
-		log.Printf("Conversion failed: %v", errConvert)
+		fmt.Printf("[TRANSACTION]: Conversion failed: %v", errConvert)
 		return ""
 	}
 
-	hasValue := senderAmount - float64(sender.Balance)
+	hasValue := float64(sender.Balance) - amountInSenderCurrency
 
 	if hasValue < 0 {
-		log.Printf("Insuficient balance")
+		fmt.Println("[TRANSACTION]: Insuficient balance")
 		return ""
 	}
+
+	status := REVIEW
 
 	transaction := Transaction{
 		Id:        uuid.New(),
@@ -166,26 +169,12 @@ func handleRequestTransaction(db *gorm.DB, payload TransactionPayload) string {
 		UpdatedAt: payload.UpdatedAt,
 	}
 
-	if error != nil {
-		failedStatus := FAILED
-
-		updates := Transaction{
-			Status:    &failedStatus,
-			Reason:    "Falta de campos para criação de transação",
-			UpdatedAt: time.Now(),
-		}
-
-		transactionUpdated, _ := updateTransaction(db, transaction.Id, updates)
-
-		message := createMessage(transactionUpdated, PENDING)
-
-		return message
-	}
-
 	if err := createTransaction(db, &transaction); err != nil {
-		log.Printf("Failed to create transaction: %v", err)
+		fmt.Printf("[TRANSACTION] Failed to create transaction: %v", err)
 		return ""
 	}
+
+	fmt.Println("[CREATED TRANSACTION]")
 
 	message := struct {
 		Id        uuid.UUID          `json:"id" gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
@@ -220,21 +209,35 @@ func handleRequestTransaction(db *gorm.DB, payload TransactionPayload) string {
 
 	var stringMessage = string(messageJSON)
 
+	fmt.Println("[TRANSACTION SENDING PEDING]")
+
 	return stringMessage
 }
 
 // TO-DO: Arrumar os updates e os retornos de mensagens
 func handlePendingTransaction(db *gorm.DB, payload TransactionPayload) string {
-	err := verifyIfCreationIsValid(payload)
-	if err != nil {
-		log.Printf("Validation failed: %v", err)
+	error := verifyIfCreationIsValid(payload)
+	if error != nil {
+		fmt.Printf("[TRANSACTION]: Transaction request: %v", error)
+		return ""
+	}
+
+	var sender user.User
+	if err := db.First(&sender, "id = ?", payload.Sender).Error; err != nil {
+		fmt.Printf("[TRANSACTION]: User not found: %v", err)
+		return ""
+	}
+
+	var receiver user.User
+	if err := db.First(&receiver, "id = ?", payload.Receiver).Error; err != nil {
+		fmt.Printf("[TRANSACTION]: User not found: %v", err)
 		return ""
 	}
 
 	var transaction Transaction
 	result := db.First(&transaction, "id = ?", payload.Id)
 	if result.Error != nil {
-		log.Printf("Transaction not found: %v", result.Error)
+		fmt.Printf("[TRANSACTION]: Transaction not found: %v", result.Error)
 		return ""
 	}
 
@@ -250,7 +253,7 @@ func handlePendingTransaction(db *gorm.DB, payload TransactionPayload) string {
 		}
 
 		transactionUpdated, _ := updateTransaction(db, transaction.Id, updates)
-		//tratar erro de banco
+		//TO-DO: tratar erro de banco
 
 		message := createMessage(transactionUpdated, PENDING)
 		return message
@@ -262,10 +265,28 @@ func handlePendingTransaction(db *gorm.DB, payload TransactionPayload) string {
 		UpdatedAt: time.Now(),
 	}
 
+	amountInReiceverCurrency, amountInSenderCurrency, errConvert := utils.ConvertCurrency(float64(payload.Amount), utils.Currency(*sender.Currency), utils.Currency(*receiver.Currency), utils.Currency(*payload.Currency))
+	if errConvert != nil {
+		fmt.Printf("[TRANSACTION]: Conversion failed: %v", errConvert)
+		return ""
+	}
+
+	newValueReceiver := amountInReiceverCurrency + receiver.Balance
+	newValueSender := amountInSenderCurrency - sender.Balance
+
+	updateSender := user.User{
+		Balance: newValueSender,
+	}
+	updateReceiver := user.User{
+		Balance: newValueReceiver,
+	}
+
 	transactionUpdated, _ := updateTransaction(db, transaction.Id, updates)
-	//tratar erro de banco
+	user.UpdateUser(db, receiver.Id, updateReceiver)
+	user.UpdateUser(db, sender.Id, updateSender)
 
 	message := createMessage(transactionUpdated, CREATED)
+	fmt.Println("[TRANSACTION PENDING]:", message)
 	return message
 }
 
@@ -279,7 +300,7 @@ func HandleMessageTransaction(db *gorm.DB, payload TransactionPayload) string {
 	case PENDING:
 		result = handlePendingTransaction(db, payload)
 	default:
-		log.Printf("Unknown event type: %s", payload.Event)
+		fmt.Printf("Unknown event type: %s", payload.Event)
 	}
 
 	return result

@@ -1,65 +1,59 @@
 package utils
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type Currency string
 
 const (
 	IC  Currency = "ic"
 	USD Currency = "usd"
-	BRL Currency = "brl"
+	BR  Currency = "br"
 	ETH Currency = "eth"
 	BTC Currency = "btc"
 )
 
-func ConvertCurrency(amount float64, requestCurrency Currency, transactionCurrency Currency, receiverCurrency Currency) (float64, float64, error) {
-	conversionRates := map[string]float64{
-		"usd": 1,
-		"brl": 0.2,
-		"eth": 3000,
-		"btc": 60000,
-		"ic":  1000000,
-	}
+// Define a map with conversion rates relative to USD
+var conversionRates = map[Currency]float64{
+	USD: 1,
+	BR:  0.2,
+	ETH: 3000,
+	BTC: 60000,
+	IC:  1000000,
+}
 
-	print(requestCurrency)
-	print(transactionCurrency)
-	print(receiverCurrency)
-
-	convert := func(amount float64, fromCurrency Currency, toCurrency Currency) (float64, error) {
-		print(fromCurrency)
-		print(toCurrency)
-		fromRate, fromExists := conversionRates[string(fromCurrency)]
-		toRate, toExists := conversionRates[string(toCurrency)]
-
-		if !fromExists || !toExists {
-			return 0, fmt.Errorf("Invalid currency: %s ou %s", fromCurrency, toCurrency)
+func ConvertCurrency(amount float64, senderCurrency Currency, transactionCurrency Currency, receiverCurrency Currency) (float64, float64, error) {
+	convertToUSD := func(amount float64, fromCurrency Currency) (float64, error) {
+		fromRate, exists := conversionRates[fromCurrency]
+		if !exists {
+			return 0, fmt.Errorf("Conversion tax not found %s", fromCurrency)
 		}
-
-		amountInUSD := amount / fromRate
-		convertedAmount := amountInUSD * toRate
-
-		return convertedAmount, nil
+		return amount * fromRate, nil
 	}
 
-	var err error
-	var intermediateAmount float64
-
-	if requestCurrency != transactionCurrency {
-		intermediateAmount, err = convert(amount, requestCurrency, transactionCurrency)
-		if err != nil {
-			return 0, 0, fmt.Errorf("erro na conversão de %s para %s: %v", requestCurrency, transactionCurrency, err)
+	convertFromUSD := func(amount float64, toCurrency Currency) (float64, error) {
+		toRate, exists := conversionRates[toCurrency]
+		if !exists {
+			return 0, fmt.Errorf("Conversion tax not found %s", toCurrency)
 		}
-	} else {
-		intermediateAmount = amount
+		return amount / toRate, nil
 	}
 
-	finalAmount := intermediateAmount
-	if transactionCurrency != receiverCurrency {
-		finalAmount, err = convert(intermediateAmount, transactionCurrency, receiverCurrency)
-		if err != nil {
-			return 0, 0, fmt.Errorf("erro na conversão de %s para %s: %v", transactionCurrency, receiverCurrency, err)
-		}
+	amountInUSD, err := convertToUSD(amount, transactionCurrency)
+	if err != nil {
+		return 0, 0, fmt.Errorf("Invalid conversion from %s to USD: %v", transactionCurrency, err)
 	}
 
-	return intermediateAmount, finalAmount, nil
+	amountInSenderCurrency, err := convertFromUSD(amountInUSD, senderCurrency)
+	if err != nil {
+		return 0, 0, fmt.Errorf("Invalid conversion from USD to %s: %v", senderCurrency, err)
+	}
+
+	amountInReceiverCurrency, err := convertFromUSD(amountInUSD, receiverCurrency)
+	if err != nil {
+		return 0, 0, fmt.Errorf("Invalid conversion from USD to %s: %v", receiverCurrency, err)
+	}
+
+	return amountInReceiverCurrency, amountInSenderCurrency, nil
 }

@@ -11,6 +11,7 @@ import (
 	"gorm.io/gorm"
 )
 
+// TO-DO:
 func createMessage(user User, event UserEvents) string {
 	message := struct {
 		Id        uuid.UUID   `json:"id"`
@@ -19,7 +20,7 @@ func createMessage(user User, event UserEvents) string {
 		Name      string      `json:"name" validate:"required"`
 		Email     string      `json:"email" validate:"required,email"`
 		PublicKey string      `json:"public_key" validate:"required"`
-		Balance   float32     `json:"balance" validate:"required"`
+		Balance   float64     `json:"balance" validate:"required"`
 		Currency  Currency    `json:"currency" validate:"required"`
 		CreatedAt time.Time   `json:"created_at" validate:"required"`
 		UpdatedAt time.Time   `json:"updated_at"`
@@ -80,7 +81,7 @@ func handleRequestUser(db *gorm.DB, payload UserPayload) string {
 			UpdatedAt: time.Now(),
 		}
 
-		userUpdated, _ := updateUser(db, user.Id, updates)
+		userUpdated, _ := UpdateUser(db, user.Id, updates)
 
 		message := createMessage(userUpdated, PENDING)
 
@@ -100,7 +101,7 @@ func handleRequestUser(db *gorm.DB, payload UserPayload) string {
 		Name      string      `json:"name" validate:"required"`
 		Email     string      `json:"email" validate:"required,email"`
 		PublicKey string      `json:"public_key" validate:"required"`
-		Balance   float32     `json:"balance" validate:"required"`
+		Balance   float64     `json:"balance" validate:"required"`
 		Currency  Currency    `json:"currency" validate:"required"`
 		CreatedAt time.Time   `json:"created_at" validate:"required"`
 		UpdatedAt time.Time   `json:"updated_at"`
@@ -154,7 +155,7 @@ func handlePendingUser(db *gorm.DB, payload UserPayload) string {
 			UpdatedAt: time.Now(),
 		}
 
-		userUpdated, _ := updateUser(db, user.Id, updates)
+		userUpdated, _ := UpdateUser(db, user.Id, updates)
 		//tratar erro de banco
 
 		message := createMessage(userUpdated, PENDING)
@@ -167,11 +168,11 @@ func handlePendingUser(db *gorm.DB, payload UserPayload) string {
 		UpdatedAt: time.Now(),
 	}
 
-	userUpdated, _ := updateUser(db, user.Id, updates)
+	userUpdated, _ := UpdateUser(db, user.Id, updates)
 	//tratar erro de banco
 
 	message := createMessage(userUpdated, CREATED)
-	println("[USER PENDING RETURN MESSAGE]", message)
+	println("[USER PENDING]", message)
 	return message
 }
 

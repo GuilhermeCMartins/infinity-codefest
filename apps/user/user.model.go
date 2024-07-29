@@ -13,7 +13,7 @@ type User struct {
 	Email     string      `json:"email"`
 	PublicKey string      `json:"public_key"`
 	Status    *UserStatus `json:"status"`
-	Balance   float32     `json:"balance" `
+	Balance   float64     `json:"balance" `
 	Currency  *Currency   `json:"currency"`
 	Reason    string      `json:"reason"`
 	CreatedAt time.Time   `json:"created_at"`
@@ -26,7 +26,7 @@ type UserPayload struct {
 	Name      string      `json:"name" validate:"required"`
 	Email     string      `json:"email" validate:"required,email"`
 	PublicKey string      `json:"public_key" validate:"required"`
-	Balance   float32     `json:"balance" validate:"required"`
+	Balance   float64     `json:"balance" validate:"required"`
 	Currency  Currency    `json:"currency" validate:"required"`
 	Status    *UserStatus `json:"status"`
 	Reason    string      `json:"reason"`
