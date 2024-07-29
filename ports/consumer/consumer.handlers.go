@@ -4,8 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-
-	transaction "myapp/apps/transactions"
+	"myapp/apps/transactions"
 	"myapp/apps/user"
 	"myapp/db"
 	"myapp/models"
@@ -40,7 +39,7 @@ func (c *Consumer) handleTransactions(deliveries <-chan amqp.Delivery) {
 			defer producer.Shutdown()
 		}
 
-		result := transaction.HandleMessageTransaction(db, payload)
+		result := transactions.HandleMessageTransaction(db, payload)
 		if result != "" {
 
 			err := producer.Publish(result)
